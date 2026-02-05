@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if title %}{{ title }} - итп{% else %}итп{% endif %}</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style type="text/tailwindcss">
+    @theme {
+      --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    }
+  </style>
+</head>
+<body class="font-mono text-zinc-900 bg-white min-h-screen flex flex-col">
+  <header class="border-b border-zinc-200 sticky top-0 bg-white/80 backdrop-blur-sm z-50">
+    <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+      <a href="{{ url_for('index') }}" class="text-xl font-semibold tracking-tight">итп</a>
+      
+      <nav class="flex items-center gap-4 text-sm">
+        <a href="{{ url_for('index') }}" class="hover:text-zinc-600 transition-colors">Главная</a>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('create_post_route') }}" class="hover:text-zinc-600 transition-colors">Создать</a>
+          <a href="{{ url_for('profile', username=current_user.username) }}" class="hover:text-zinc-600 transition-colors">Профиль</a>
+        {% else %}
+          <a href="{{ url_for('login') }}" class="hover:text-zinc-600 transition-colors">Вход</a>
+          <a href="{{ url_for('register') }}" class="px-4 py-1.5 bg-zinc-900 text-white text-sm hover:bg-zinc-700 transition-colors">Регистрация</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+  
+  <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-8">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="mb-4 px-4 py-3 rounded-lg {% if category == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-zinc-100 text-zinc-700{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    <h1 class="text-2xl font-semibold mb-6">Вход</h1>
+    
+    <form method="POST" class="max-w-sm">
+      <input type="email" name="email" placeholder="Email" required autofocus autocomplete="email"
+        class="w-full text-base border-b-2 border-zinc-300 py-3 bg-transparent focus:outline-none focus:border-zinc-900 placeholder:text-zinc-400 mb-4">
+      <input type="password" name="password" placeholder="Пароль" required autocomplete="current-password"
+        class="w-full text-base border-b-2 border-zinc-300 py-3 bg-transparent focus:outline-none focus:border-zinc-900 placeholder:text-zinc-400 mb-4">
+      
+      <button type="submit" class="w-full py-3 bg-zinc-900 text-white text-base hover:bg-zinc-700 transition-colors">Войти</button>
+    </form>
+    
+    <div class="mt-6 text-center space-y-2">
+      <a href="{{ url_for('register') }}" class="block text-sm text-zinc-500 hover:text-zinc-900">Нет аккаунта? Регистрация</a>
+    </div>
+  </main>
+  
+  <footer class="border-t border-zinc-200 py-6 mt-auto">
+    <div class="max-w-4xl mx-auto px-4 text-center text-sm text-zinc-500 space-y-2">
+      <div class="flex justify-center gap-4">
+        <a href="{{ url_for('privacy') }}" class="hover:underline">Политика конфиденциальности</a>
+        <a href="{{ url_for('terms') }}" class="hover:underline">Пользовательское соглашение</a>
+      </div>
+      &copy; 2026 итп. Все права защищены.
+    </div>
+  </footer>
+</body>
+</html>

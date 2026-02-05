@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+  <a href="{{ url_for('admin_reports', status='pending') }}" class="text-zinc-500 hover:text-zinc-900">← Назад к жалобам</a>
+  
+  <h1 class="text-2xl font-semibold">Рассмотрение жалобы</h1>
+  
+  <div class="p-4 bg-zinc-50 rounded-lg space-y-4">
+    <div class="flex items-center gap-2">
+      <span class="px-2 py-1 text-xs {% if report.status == 'pending' %}bg-yellow-100 text-yellow-800{% elif report.status == 'resolved' %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %} rounded">
+        {{ {'pending': 'Ожидает', 'resolved': 'Решена', 'dismissed': 'Отклонена'}[report.status] }}
+      </span>
+      <span class="text-sm text-zinc-500">Создано: {{ report.created_at[:10] }}</span>
+    </div>
+    
+    <div>
+      <p class="text-sm text-zinc-600">От:</p>
+      <a href="{{ url_for('profile', username=report.reporter.username if report.reporter else 'unknown') }}" class="font-medium hover:underline">
+        {{ report.reporter.display_name if report.reporter else 'Unknown' }}
+      </a>
+    </div>
+    
+    <div>
+      <p class="text-sm text-zinc-600">Тип контента:</p>
+      <p>{{ report.content_type }} (ID: {{ report.content_id }})</p>
+    </div>
+    
+    <div>
+      <p class="text-sm text-zinc-600">Причина:</p>
+      <p>{{ report.reason }}</p>
+    </div>
+    
+    {% if report.content %}
+      <div>
+        <p class="text-sm text-zinc-600">Контент:</p>
+        <div class="mt-2 p-4 bg-white rounded border border-zinc-200">
+          {% if report.content_type == 'post' %}
+            <p>{{ report.content.content }}</p>
+            {% if report.content.media %}
+              <div class="mt-3 flex gap-2 flex-wrap">
+                {% for media in report.content.media[:3] %}
+                  <img src="{{ url_for('uploaded_file', filename='post_media/' + media) }}" class="w-24 h-24 object-cover rounded" alt="Media">
+                {% endfor %}
+              </div>
+            {% endif %}
+          {% else %}
+            <p>{{ report.content.content }}</p>
+          {% endif %}
+        </div>
+      </div>
+      
+      {% if report.content.author %}
+        <div>
+          <p class="text-sm text-zinc-600">Автор контента:</p>
+          <a href="{{ url_for('profile', username=report.content.author.username if report.content.author else 'unknown') }}" class="font-medium hover:underline">
+            {{ report.content.author.display_name if report.content.author else 'Unknown' }}
+          </a>
+        </div>
+      {% endif %}
+    {% endif %}
+    
+    {% if report.status == 'pending' %}
+      <form method="POST" class="flex gap-2 pt-4 border-t border-zinc-200">
+        <button type="submit" name="action" value="resolve" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Отметить как решённую</button>
+        <button type="submit" name="action" value="dismiss" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Отклонить жалобу</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

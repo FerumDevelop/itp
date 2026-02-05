@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">Забанить пользователя</h1>
+
+<div class="border border-zinc-200 rounded-lg p-5 bg-white max-w-xl">
+  <div class="flex items-center gap-3 mb-4">
+    <img src="{{ url_for('uploaded_file', filename=user.avatar) }}" alt="" class="w-12 h-12 rounded-full bg-zinc-100">
+    <div>
+      <p class="font-medium">{{ user.display_name }}</p>
+      <p class="text-zinc-500">@{{ user.username }}</p>
+    </div>
+  </div>
+  
+  <form method="POST" class="space-y-4">
+    <div>
+      <label class="block text-sm text-zinc-600 mb-1">Тип бана</label>
+      <select name="ban_type" class="w-full p-2 border border-zinc-300 rounded">
+        <option value="ban">Полный бан</option>
+        <option value="read_only">Только чтение</option>
+      </select>
+    </div>
+    
+    <div>
+      <label class="block text-sm text-zinc-600 mb-1">Причина</label>
+      <textarea name="reason" rows="3" placeholder="Причина бана..." required
+        class="w-full p-2 border border-zinc-300 rounded"></textarea>
+    </div>
+    
+    <div>
+      <label class="block text-sm text-zinc-600 mb-1">Срок (оставьте пустым для бессрочного)</label>
+      <input type="datetime-local" name="expires_at"
+        class="w-full p-2 border border-zinc-300 rounded">
+    </div>
+    
+    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Забанить</button>
+  </form>
+</div>
+{% endblock %}

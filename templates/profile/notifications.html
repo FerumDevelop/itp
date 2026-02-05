@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Уведомления{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">Уведомления</h1>
+
+{% if notifications %}
+  <div class="space-y-3">
+    {% for notification in notifications %}
+      <div class="p-4 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors {% if not notification.is_read %}bg-blue-50 border-blue-200{% endif %}">
+        <div class="flex items-start gap-3">
+          <div class="flex-shrink-0">
+            {% if notification.type == 'like' %}
+              <span class="text-xl">❤️</span>
+            {% elif notification.type == 'comment' %}
+              <span class="text-xl">💬</span>
+            {% elif notification.type == 'verification_approved' %}
+              <span class="text-xl">✅</span>
+            {% elif notification.type == 'verification_rejected' %}
+              <span class="text-xl">❌</span>
+            {% elif notification.type == 'site_message' %}
+              <span class="text-xl">📢</span>
+            {% endif %}
+          </div>
+          <div class="flex-1">
+            <p class="text-sm">{{ notification.message }}</p>
+            <p class="text-xs text-zinc-500 mt-1">{{ notification.created_at }}</p>
+          </div>
+          {% if notification.link %}
+            <a href="{{ notification.link }}" class="text-sm text-blue-600 hover:underline">Открыть</a>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  
+  <form method="POST" action="{{ url_for('mark_notifications_read') }}" class="mt-6">
+    <button type="submit" class="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 rounded text-sm transition-colors">Отметить все как прочитанные</button>
+  </form>
+{% else %}
+  <p class="text-zinc-500">У вас пока нет уведомлений.</p>
+{% endif %}
+{% endblock %}

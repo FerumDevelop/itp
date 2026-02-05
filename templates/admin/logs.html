@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+  <h1 class="text-2xl font-semibold">Логи администраторов</h1>
+  
+  {% if logs %}
+    <div class="space-y-3">
+      {% for log in logs %}
+        <div class="p-4 bg-zinc-50 rounded-lg">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="font-medium">
+                {% if log.admin %}
+                  {{ log.admin.display_name }}
+                {% else %}
+                  Unknown Admin
+                {% endif %}
+              </p>
+              <p class="text-sm text-zinc-600">
+                {{ log.action }}
+                {% if log.content_type %}
+                  ({{ log.content_type }} #{{ log.content_id }})
+                {% endif %}
+              </p>
+            </div>
+            <span class="text-sm text-zinc-500">{{ log.created_at[:19].replace('T', ' ') }}</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-zinc-500">Нет логов</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">Админ-панель</h1>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+  <div class="border border-zinc-200 rounded-lg p-4 bg-white">
+    <p class="text-sm text-zinc-500">Пользователи</p>
+    <p class="text-2xl font-semibold">{{ stats.total_users }}</p>
+  </div>
+  <div class="border border-zinc-200 rounded-lg p-4 bg-white">
+    <p class="text-sm text-zinc-500">Посты</p>
+    <p class="text-2xl font-semibold">{{ stats.total_posts }}</p>
+  </div>
+  <div class="border border-zinc-200 rounded-lg p-4 bg-white">
+    <p class="text-sm text-zinc-500">Комментарии</p>
+    <p class="text-2xl font-semibold">{{ stats.total_comments }}</p>
+  </div>
+  <div class="border border-zinc-200 rounded-lg p-4 bg-white">
+    <p class="text-sm text-zinc-500">Верифицированные</p>
+    <p class="text-2xl font-semibold">{{ stats.verified_users }}</p>
+  </div>
+</div>
+
+{% if current_user.role == 'creator' %}
+<div class="border border-yellow-200 rounded-lg p-5 bg-yellow-50 mb-8">
+  <h2 class="text-lg font-semibold mb-4 text-yellow-800">Режим обслуживания</h2>
+  
+  <form action="{{ url_for('admin_toggle_maintenance') }}" method="POST">
+    <div class="flex items-center gap-4">
+      <label class="flex items-center gap-2">
+        <input type="radio" name="enabled" value="false" checked>
+        <span>Обычный режим</span>
+      </label>
+      <label class="flex items-center gap-2">
+        <input type="radio" name="enabled" value="true">
+        <span>Режим обслуживания</span>
+      </label>
+      <button type="submit" class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700">
+        Сохранить
+      </button>
+    </div>
+    <p class="text-sm text-yellow-700 mt-2">В режиме обслуживания обычные пользователи не смогут создавать посты и комментарии.</p>
+  </form>
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div class="border border-zinc-200 rounded-lg p-5 bg-white">
+    <h2 class="text-lg font-semibold mb-4">Пользователи</h2>
+    <div class="space-y-2">
+      <a href="{{ url_for('admin_users') }}" class="block py-2 px-3 hover:bg-zinc-50 rounded">Управление пользователями →</a>
+      <a href="{{ url_for('admin_applications') }}" class="block py-2 px-3 hover:bg-zinc-50 rounded">Заявки на верификацию →</a>
+      <a href="{{ url_for('admin_reports') }}" class="block py-2 px-3 hover:bg-zinc-50 rounded">Жалобы →</a>
+      {% if current_user.role == 'creator' %}
+        <a href="{{ url_for('admin_logs') }}" class="block py-2 px-3 hover:bg-zinc-50 rounded">Логи администраторов →</a>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="border border-zinc-200 rounded-lg p-5 bg-white">
+    <h2 class="text-lg font-semibold mb-4">Топ пользователей</h2>
+    <div class="space-y-2">
+      {% for user in top_users[:5] %}
+        <div class="flex items-center gap-2 py-1">
+          {% if user.avatar and user.avatar != 'default_avatar.png' %}
+            <img src="{{ url_for('uploaded_file', filename=user.avatar) }}" alt="" class="w-6 h-6 rounded-full bg-zinc-100">
+          {% else %}
+            <div class="w-6 h-6 rounded-full bg-zinc-200 flex items-center justify-center text-xs font-semibold text-zinc-500">
+              {{ user.display_name[0].upper() }}
+            </div>
+          {% endif %}
+          <a href="{{ url_for('profile', username=user.username) }}" class="hover:underline">{{ user.display_name }}</a>
+          <span class="text-zinc-400 text-sm">{{ user.activity_score }} баллов</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

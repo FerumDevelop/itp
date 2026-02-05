@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">Поиск</h1>
+
+<form action="{{ url_for('search') }}" method="GET" class="mb-8">
+  <div class="flex gap-2">
+    <input type="text" name="q" value="{{ query }}" placeholder="Поиск..." 
+      class="flex-1 p-3 border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-900">
+    <button type="submit" class="px-6 py-3 bg-zinc-900 text-white rounded-lg hover:bg-zinc-700 transition-colors">
+      Поиск
+    </button>
+  </div>
+  
+  <div class="flex gap-4 mt-4">
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="radio" name="type" value="all" {% if type_filter == 'all' %}checked{% endif %}>
+      <span>Все</span>
+    </label>
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="radio" name="type" value="users" {% if type_filter == 'users' %}checked{% endif %}>
+      <span>Пользователи</span>
+    </label>
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input type="radio" name="type" value="posts" {% if type_filter == 'posts' %}checked{% endif %}>
+      <span>Посты</span>
+    </label>
+  </div>
+</form>
+
+{% if query %}
+  {% if results %}
+    {% if results.users %}
+      <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-4">Пользователи ({{ results.users|length }})</h2>
+        <div class="grid gap-4 md:grid-cols-2">
+          {% for user in results.users %}
+            <a href="{{ url_for('profile', username=user.username) }}" class="flex items-center gap-3 p-3 border border-zinc-200 rounded-lg hover:border-zinc-300 transition-colors bg-white">
+              {% if user.avatar and user.avatar != 'default_avatar.png' %}
+                <img src="{{ url_for('uploaded_file', filename=user.avatar) }}" alt="" class="w-12 h-12 rounded-full object-cover bg-zinc-100">
+              {% else %}
+                <div class="w-12 h-12 rounded-full bg-zinc-200 flex items-center justify-center font-semibold text-zinc-500">
+                  {{ user.display_name[0].upper() }}
+                </div>
+              {% endif %}
+              <div>
+                <p class="font-medium">{{ user.display_name }}</p>
+                <p class="text-sm text-zinc-500">@{{ user.username }}</p>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+    
+    {% if results.posts %}
+      <div>
+        <h2 class="text-xl font-semibold mb-4">Посты ({{ results.posts|length }})</h2>
+        <div class="space-y-4">
+          {% for post in results.posts %}
+            <a href="{{ url_for('view_post', post_id=post.id) }}" class="block p-4 border border-zinc-200 rounded-lg hover:border-zinc-300 transition-colors bg-white">
+              <div class="flex items-center gap-2 mb-2">
+                {% if post.author %}
+                  <span class="font-medium">{{ post.author.display_name }}</span>
+                  <span class="text-zinc-500">@{{ post.author.username }}</span>
+                {% endif %}
+                <span class="text-zinc-400 text-sm">{{ post.created_at[:10] if post.created_at else '' }}</span>
+              </div>
+              <p class="text-zinc-700">{{ post.content[:200] }}{% if post.content|length > 200 %}...{% endif %}</p>
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+    
+    {% if not results.users and not results.posts %}
+      <p class="text-center py-12 text-zinc-500">Ничего не найдено</p>
+    {% endif %}
+  {% else %}
+    <p class="text-center py-12 text-zinc-500">Ничего не найдено</p>
+  {% endif %}
+{% endif %}
+{% endblock %}

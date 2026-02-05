@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">Редактировать пост</h1>
+
+<form method="POST" class="max-w-xl">
+  <div class="mb-4">
+    <label class="block text-sm text-zinc-600 mb-1">Текст поста</label>
+    <textarea name="content" rows="6" required
+      class="w-full p-3 border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-900">{{ post.content }}</textarea>
+  </div>
+  
+  <button type="submit" class="px-6 py-3 bg-zinc-900 text-white hover:bg-zinc-700 transition-colors">Сохранить</button>
+</form>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-semibold">Заявки на верификацию</h1>
+</div>
+
+<div class="flex gap-2 mb-6">
+  <a href="{{ url_for('admin_applications', status='pending') }}" class="px-3 py-1 rounded {% if status == 'pending' %}bg-zinc-900 text-white{% else %}bg-zinc-100{% endif %}">Ожидают</a>
+  <a href="{{ url_for('admin_applications', status='all') }}" class="px-3 py-1 rounded {% if status == 'all' %}bg-zinc-900 text-white{% else %}bg-zinc-100{% endif %}">Все</a>
+</div>
+
+{% if applications %}
+  <div class="space-y-4">
+    {% for app in applications %}
+      <div class="border border-zinc-200 rounded-lg p-4 bg-white">
+        <div class="flex items-start gap-3">
+          <a href="{{ url_for('profile', username=app.user.username if app.user else 'unknown') }}">
+            <img src="{{ url_for('uploaded_file', filename=app.user.avatar if app.user else 'default_avatar.png') }}" alt="" class="w-10 h-10 rounded-full bg-zinc-100">
+          </a>
+          <div class="flex-1">
+            <p class="font-medium">{{ app.user.display_name if app.user else 'Unknown' }} @{{ app.user.username if app.user else 'unknown' }}</p>
+            <p class="text-sm text-zinc-500">{{ app.created_at[:10] if app.created_at else '' }}</p>
+            <p class="mt-2">{{ app.message }}</p>
+            {% if app.photos %}
+              <div class="flex gap-2 mt-2">
+                {% for photo in app.photos %}
+                  <img src="{{ url_for('uploaded_file', filename=photo) }}" alt="" class="w-16 h-16 rounded object-cover bg-zinc-100">
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+          <div class="flex gap-2">
+            {% if app.status == 'pending' %}
+              <a href="{{ url_for('admin_approve_application', app_id=app.id) }}" class="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200">Одобрить</a>
+              <a href="{{ url_for('admin_reject_application', app_id=app.id) }}" class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200">Отклонить</a>
+            {% else %}
+              <span class="px-3 py-1 rounded {% if app.status == 'approved' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">{{ app.status }}</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-zinc-500">Нет заявок.</p>
+{% endif %}
+{% endblock %}

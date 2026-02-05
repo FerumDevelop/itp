@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">Команда</h1>
+
+<p class="text-zinc-500 mb-8">Все участники проекта со своими ролями</p>
+
+{% if not team_members %}
+  <p class="text-center py-12 text-zinc-500">Пока нет участников команды</p>
+{% else %}
+  <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    {% for user in team_members %}
+      <div class="border border-zinc-200 rounded-lg p-5 bg-white">
+        <div class="flex items-center gap-4 mb-4">
+          <a href="{{ url_for('profile', username=user.username) }}">
+            {% if user.avatar and user.avatar != 'default_avatar.png' %}
+              <img src="{{ url_for('uploaded_file', filename=user.avatar) }}" alt="" class="w-16 h-16 rounded-full object-cover bg-zinc-100">
+            {% else %}
+              <div class="w-16 h-16 rounded-full bg-zinc-200 flex items-center justify-center text-xl font-semibold text-zinc-500">
+                {{ user.display_name[0].upper() }}
+              </div>
+            {% endif %}
+          </a>
+          <div>
+            <a href="{{ url_for('profile', username=user.username) }}" class="font-medium hover:underline block">
+              {{ user.display_name }}
+            </a>
+            <p class="text-sm text-zinc-500">@{{ user.username }}</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-2 mb-3">
+          <span class="px-3 py-1 text-sm rounded-full 
+            {% if user.role == 'creator' %}bg-purple-100 text-purple-700
+            {% elif user.role == 'admin' %}bg-red-100 text-red-700
+            {% elif user.role == 'moderator' %}bg-orange-100 text-orange-700
+            {% elif user.role == 'coder' %}bg-yellow-100 text-yellow-700
+            {% elif user.role == 'designer' %}bg-pink-100 text-pink-700
+            {% else %}bg-green-100 text-green-700{% endif %}">
+            {{ user.role }}
+          </span>
+        </div>
+        
+        {% if user.badges %}
+          <div class="flex flex-wrap gap-1">
+            {% for badge in user.badges %}
+              {% if BADGES[badge] %}
+                <span class="px-2 py-0.5 text-xs rounded-full bg-zinc-100 text-zinc-600" title="{{ BADGES[badge].name }}">
+                  {{ BADGES[badge].icon }} {{ BADGES[badge].name }}
+                </span>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+        
+        {% if user.bio %}
+          <p class="text-sm text-zinc-600 mt-3">{{ user.bio }}</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

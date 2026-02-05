@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-6">
+  <div class="h-32 bg-zinc-100 rounded-lg mb-12 overflow-hidden">
+    {% if profile_user.banner and profile_user.banner != 'default_banner.png' %}
+      <img src="{{ url_for('uploaded_file', filename=profile_user.banner) }}" alt="Banner" class="w-full h-full object-cover">
+    {% endif %}
+  </div>
+  
+  <div class="flex items-start gap-4 px-4 -mt-16 relative">
+    {% set avatar_initial = profile_user.display_name[0].upper() if profile_user.display_name else profile_user.username[0].upper() %}
+    {% if profile_user.avatar and profile_user.avatar != 'default_avatar.png' %}
+      <img src="{{ url_for('uploaded_file', filename=profile_user.avatar) }}" alt="Avatar" 
+        class="w-24 h-24 rounded-full border-4 border-white object-cover bg-zinc-100 shadow">
+    {% else %}
+      <div class="w-24 h-24 rounded-full border-4 border-white bg-zinc-200 flex items-center justify-center text-2xl font-semibold text-zinc-500 shadow">
+        {{ avatar_initial }}
+      </div>
+    {% endif %}
+    
+    <div class="flex-1 pt-2">
+      <div class="flex items-center gap-2">
+        <h1 class="text-2xl font-semibold">{{ profile_user.display_name }}</h1>
+        {% if profile_user.is_verified %}
+          <span class="text-blue-500 text-xl">✓</span>
+        {% endif %}
+      </div>
+      <p class="text-zinc-500">@{{ profile_user.username }}</p>
+      {% if profile_user.role != 'user' %}
+        <span class="inline-block mt-1 px-2 py-0.5 bg-zinc-100 text-zinc-600 text-xs rounded">{{ profile_user.role }}</span>
+      {% endif %}
+    </div>
+    
+    {% if current_user.is_authenticated and current_user.id == profile_user.id %}
+      <a href="{{ url_for('settings') }}" class="mt-2 px-4 py-1.5 border border-zinc-300 rounded hover:bg-zinc-50 transition-colors">Редактировать профиль</a>
+    {% elif current_user.is_authenticated and current_user.id != profile_user.id %}
+      <form action="{{ url_for('subscribe', user_id=profile_user.id) }}" method="POST" class="mt-2">
+        <button type="submit" class="px-4 py-1.5 {% if is_subscribed %}bg-zinc-200{% else %}bg-zinc-900 text-white{% endif %} rounded hover:bg-zinc-700 transition-colors">
+          {{ 'Отписаться' if is_subscribed else 'Подписаться' }}
+        </button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+  <div class="md:col-span-2">
+    {% if profile_user.bio %}
+      <p class="whitespace-pre-wrap mb-6">{{ profile_user.bio }}</p>
+    {% endif %}
+    
+    <h2 class="text-xl font-semibold mb-4">Посты ({{ posts|length }})</h2>
+    
+    {% if posts %}
+      <div class="space-y-4">
+        {% for post in posts %}
+          <article class="border border-zinc-200 rounded-lg p-4 hover:border-zinc-300 transition-colors bg-white">
+            <a href="{{ url_for('view_post', post_id=post.id) }}" class="block">
+              <p class="whitespace-pre-wrap mb-2">{{ post.content[:200] }}{% if post.content|length > 200 %}...{% endif %}</p>
+              <p class="text-sm text-zinc-400">{{ post.created_at[:10] if post.created_at else '' }}</p>
+            </a>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-zinc-500">Пока нет постов.</p>
+    {% endif %}
+  </div>
+  
+  <div>
+    <div class="border border-zinc-200 rounded-lg p-4 bg-zinc-50">
+      <h3 class="font-medium mb-3">Статистика</h3>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between">
+          <span class="text-zinc-500">Посты</span>
+          <span>{{ profile_user.post_count }}</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-zinc-500">Подписчики</span>
+          <a href="{{ url_for('subscribers', username=profile_user.username) }}" class="hover:underline">{{ subscriber_count }}</a>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-zinc-500">Подписки</span>
+          <a href="{{ url_for('subscriptions', username=profile_user.username) }}" class="hover:underline">{{ subscription_count }}</a>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-zinc-500">Регистрация</span>
+          <span>{{ profile_user.created_at[:10] if profile_user.created_at else '' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

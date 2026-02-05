@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">Заявка на верификацию</h1>
+
+<div class="max-w-xl">
+  <p class="text-zinc-600 mb-6">Получите галочку ✓ для своего профиля. Заполните заявку и наши администраторы рассмотрят её.</p>
+  
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="mb-4 px-4 py-3 rounded-lg {% if category == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-green-50 text-green-700 border border-green-200{% endif %}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  
+  <form method="POST" enctype="multipart/form-data" class="space-y-4">
+    <div>
+      <label class="block text-sm text-zinc-600 mb-1">Почему вы должны получить верификацию?</label>
+      <textarea name="message" rows="4" placeholder="Расскажите о себе, своих достижениях, почему вам нужна галочка..." required
+        class="w-full p-3 border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-900"></textarea>
+    </div>
+    
+    <div>
+      <label class="block text-sm text-zinc-600 mb-1">Доказательства (максимум 3 фото)</label>
+      <input type="file" name="photos" accept="image/*" multiple
+        class="w-full p-3 border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-900">
+    </div>
+    
+    <button type="submit" class="px-6 py-3 bg-zinc-900 text-white hover:bg-zinc-700 transition-colors">Отправить заявку</button>
+  </form>
+</div>
+{% endblock %}

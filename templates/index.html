@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-8">
+  <h1 class="text-2xl font-semibold mb-2">Лента</h1>
+  <p class="text-zinc-500">Последние публикации</p>
+</div>
+
+{% if not posts %}
+  <div class="text-center py-12 text-zinc-500">
+    <p>Пока нет публикаций.</p>
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('create_post_route') }}" class="underline mt-4 inline-block hover:text-zinc-900">Создайте первый пост</a>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="space-y-6">
+    {% for post in posts %}
+      {% set avatar_initial = post.author.display_name[0].upper() if post.author and post.author.display_name else post.author.username[0].upper() if post.author else '?' %}
+      <article class="border border-zinc-200 rounded-lg p-5 hover:border-zinc-300 transition-colors bg-white">
+        <div class="flex items-start gap-3 mb-3">
+          <a href="{{ url_for('profile', username=post.author.username if post.author else 'unknown') }}">
+            {% if post.author and post.author.avatar and post.author.avatar != 'default_avatar.png' %}
+              <img src="{{ url_for('uploaded_file', filename=post.author.avatar) }}" 
+                alt="Avatar" class="w-10 h-10 rounded-full object-cover bg-zinc-100">
+            {% else %}
+              <div class="w-10 h-10 rounded-full bg-zinc-200 flex items-center justify-center text-sm font-semibold text-zinc-500">
+                {{ avatar_initial }}
+              </div>
+            {% endif %}
+          </a>
+          <div class="flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <a href="{{ url_for('profile', username=post.author.username if post.author else 'unknown') }}" class="font-medium hover:underline">
+                {{ post.author.display_name if post.author else 'Unknown' }}
+              </a>
+              {% if post.author and post.author.is_verified %}
+                <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                </svg>
+              {% endif %}
+              <span class="text-zinc-400 text-sm">@{{ post.author.username if post.author else 'unknown' }}</span>
+            </div>
+            <p class="text-sm text-zinc-400">{{ post.created_at[:10] if post.created_at else '' }}</p>
+          </div>
+        </div>
+        
+        <a href="{{ url_for('view_post', post_id=post.id) }}" class="block">
+          <p class="whitespace-pre-wrap mb-3 {% if post.content|length > 200 %}line-clamp-3{% endif %}">{{ post.content[:200] }}{% if post.content|length > 200 %}...{% endif %}</p>
+          {% if post.media %}
+            <div class="grid gap-2 mb-3 {% if post.media|length == 1 %}grid-cols-1 max-w-md{% else %}grid-cols-2 md:grid-cols-3{% endif %}">
+              {% for media in post.media[:4] %}
+                <img src="{{ url_for('uploaded_file', filename=media) }}" alt="Media" 
+                  class="rounded-lg object-cover aspect-square bg-zinc-100 w-full h-48 md:h-64">
+              {% endfor %}
+            </div>
+          {% endif %}
+        </a>
+        
+        <div class="flex items-center gap-4 text-sm text-zinc-500 mt-3">
+          <a href="{{ url_for('view_post', post_id=post.id) }}" class="hover:text-zinc-900 transition-colors flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+            {{ post.comment_count }}
+          </a>
+          <span class="flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/>
+            </svg>
+            {{ post.reaction_count.like if post.reaction_count else 0 }}
+          </span>
+          <span class="flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"/>
+            </svg>
+            {{ post.reaction_count.dislike if post.reaction_count else 0 }}
+          </span>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+  
+  {% if pages > 1 %}
+    <div class="flex justify-center gap-2 mt-8 flex-wrap">
+      {% for page_num in range(1, pages + 1) %}
+        <a href="{{ url_for('index', page=page_num) }}" 
+          class="px-3 py-1 border border-zinc-300 rounded hover:bg-zinc-100 {% if page_num == page %}bg-zinc-900 text-white hover:bg-zinc-700{% endif %}">
+          {{ page_num }}
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

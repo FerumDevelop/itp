@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if title %}{{ title }} - итп{% else %}итп{% endif %}</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style type="text/tailwindcss">
+    @theme {
+      --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const theme = '{{ theme }}';
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else if (theme === 'black-yellow') {
+        document.documentElement.classList.add('theme-black-yellow');
+      }
+    });
+  </script>
+  <style>
+    .dark body {
+      background-color: #18181b !important;
+      color: #e4e4e7 !important;
+    }
+    .dark .bg-white {
+      background-color: #18181b !important;
+    }
+    .dark .text-zinc-900,
+    .dark .text-zinc-700 {
+      color: #e4e4e7 !important;
+    }
+    .dark .text-zinc-600,
+    .dark .text-zinc-500 {
+      color: #a1a1aa !important;
+    }
+    .dark .text-zinc-400 {
+      color: #71717a !important;
+    }
+    .dark .border-zinc-200,
+    .dark .border-zinc-300 {
+      border-color: #3f3f46 !important;
+    }
+    .dark .bg-zinc-100 {
+      background-color: #27272a !important;
+    }
+    .dark .bg-zinc-50 {
+      background-color: #27272a !important;
+    }
+    .dark .bg-zinc-900 {
+      background-color: #27272a !important;
+    }
+    .dark .bg-zinc-800 {
+      background-color: #3f3f46 !important;
+    }
+    .dark .border-b-2 {
+      border-color: #3f3f46 !important;
+    }
+    .dark input,
+    .dark textarea,
+    .dark select {
+      background-color: #27272a !important;
+      color: #e4e4e7 !important;
+      border-color: #3f3f46 !important;
+    }
+    .dark input::placeholder,
+    .dark textarea::placeholder {
+      color: #71717a !important;
+    }
+    
+    .theme-black-yellow body {
+      background-color: #000000 !important;
+      color: #ffff00 !important;
+    }
+    .theme-black-yellow .bg-white {
+      background-color: #000000 !important;
+    }
+    .theme-black-yellow .text-zinc-900,
+    .theme-black-yellow .text-zinc-700 {
+      color: #ffff00 !important;
+    }
+    .theme-black-yellow .text-zinc-600,
+    .theme-black-yellow .text-zinc-500 {
+      color: #aaaa00 !important;
+    }
+    .theme-black-yellow .text-zinc-400 {
+      color: #888800 !important;
+    }
+    .theme-black-yellow .border-zinc-200,
+    .theme-black-yellow .border-zinc-300 {
+      border-color: #333300 !important;
+    }
+    .theme-black-yellow .bg-zinc-100 {
+      background-color: #1a1a00 !important;
+    }
+    .theme-black-yellow .bg-zinc-50 {
+      background-color: #1a1a00 !important;
+    }
+    .theme-black-yellow .bg-zinc-900 {
+      background-color: #333300 !important;
+    }
+    .theme-black-yellow .bg-zinc-800 {
+      background-color: #333300 !important;
+    }
+    .theme-black-yellow .border-b-2 {
+      border-color: #333300 !important;
+    }
+    .theme-black-yellow input,
+    .theme-black-yellow textarea,
+    .theme-black-yellow select {
+      background-color: #1a1a00 !important;
+      color: #ffff00 !important;
+      border-color: #333300 !important;
+    }
+    .theme-black-yellow input::placeholder,
+    .theme-black-yellow textarea::placeholder {
+      color: #888800 !important;
+    }
+    .theme-black-yellow a {
+      color: #ffff00 !important;
+    }
+    .theme-black-yellow a:hover {
+      color: #ffaa00 !important;
+    }
+    .theme-black-yellow button.bg-zinc-900 {
+      background-color: #333300 !important;
+    }
+    
+    .dark header,
+    .dark header.bg-white {
+      background-color: #18181b !important;
+      border-color: #3f3f46 !important;
+    }
+    .dark #mobile-menu,
+    .dark #mobile-menu.bg-white {
+      background-color: #18181b !important;
+      border-color: #3f3f46 !important;
+    }
+    .dark #mobile-menu a {
+      color: #e4e4e7 !important;
+    }
+    .dark #mobile-menu a:hover {
+      color: #a1a1aa !important;
+    }
+    .dark #mobile-menu .border-t,
+    .dark #mobile-menu .border-t.border-zinc-200 {
+      border-color: #3f3f46 !important;
+    }
+    .dark .hover\:bg-zinc-100:hover {
+      background-color: #3f3f46 !important;
+    }
+    .dark .bg-white\/80 {
+      background-color: rgba(24, 24, 27, 0.8) !important;
+    }
+    
+    .theme-black-yellow header,
+    .theme-black-yellow header.bg-white {
+      background-color: #000000 !important;
+      border-color: #333300 !important;
+    }
+    .theme-black-yellow #mobile-menu,
+    .theme-black-yellow #mobile-menu.bg-white {
+      background-color: #000000 !important;
+      border-color: #333300 !important;
+    }
+    .theme-black-yellow #mobile-menu a {
+      color: #ffff00 !important;
+    }
+    .theme-black-yellow #mobile-menu a:hover {
+      color: #ffaa00 !important;
+    }
+    .theme-black-yellow #mobile-menu .border-t,
+    .theme-black-yellow #mobile-menu .border-t.border-zinc-200 {
+      border-color: #333300 !important;
+    }
+    .theme-black-yellow .hover\:bg-zinc-100:hover {
+      background-color: #333300 !important;
+    }
+    .theme-black-yellow .bg-white\/80 {
+      background-color: rgba(0, 0, 0, 0.8) !important;
+    }
+    .theme-black-yellow button,
+    .theme-black-yellow button.hover\:bg-zinc-100:hover {
+      color: #ffff00 !important;
+    }
+    .theme-black-yellow .border-zinc-200,
+    .theme-black-yellow .border-zinc-300 {
+      border-color: #333300 !important;
+    }
+  </style>
+</head>
+<body class="font-mono text-zinc-900 bg-white min-h-screen flex flex-col">
+  <header class="border-b border-zinc-200 sticky top-0 bg-white/80 backdrop-blur-sm z-50">
+    <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="{{ url_for('index') }}" class="text-xl font-semibold tracking-tight">итп</a>
+        
+        <form action="{{ url_for('search') }}" method="GET" class="hidden md:flex items-center">
+          <input type="text" name="q" placeholder="Поиск..." 
+            class="px-3 py-1 text-sm border border-zinc-300 rounded-full focus:outline-none focus:border-zinc-900 bg-zinc-50">
+        </form>
+      </div>
+      
+      <button id="menu-toggle" class="p-2 hover:bg-zinc-100 rounded lg:hidden">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      
+      <nav class="hidden lg:flex items-center gap-4 text-sm">
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('create_post_route') }}" class="hover:text-zinc-600 transition-colors">Создать</a>
+          <a href="{{ url_for('search') }}" class="hover:text-zinc-600 transition-colors">Поиск</a>
+          <a href="{{ url_for('team') }}" class="hover:text-zinc-600 transition-colors">Команда</a>
+          <a href="{{ url_for('profile', username=current_user.username) }}" class="hover:text-zinc-600 transition-colors">Профиль</a>
+          {% if is_admin %}
+            <a href="{{ url_for('admin_dashboard') }}" class="hover:text-zinc-600 transition-colors text-zinc-500">Админ</a>
+          {% endif %}
+          <a href="{{ url_for('notifications') }}" class="hover:text-zinc-600 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+          </a>
+          <a href="{{ url_for('settings') }}" class="hover:text-zinc-600 transition-colors">Настройки</a>
+        {% else %}
+          <a href="{{ url_for('login') }}" class="hover:text-zinc-600 transition-colors">Вход</a>
+          <a href="{{ url_for('register') }}" class="px-4 py-1.5 bg-zinc-900 text-white text-sm hover:bg-zinc-700 transition-colors">Регистрация</a>
+        {% endif %}
+        
+        <form action="{{ url_for('toggle_theme') }}" method="POST" class="inline">
+          <button type="submit" class="w-6 h-6 flex items-center justify-center rounded hover:bg-zinc-100" title="Сменить тему">
+            {% if theme == 'light' %}
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+              </svg>
+            {% elif theme == 'dark' %}
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2L12 22M12 2C12 2 5 9 5 14C5 18 8 22 12 22C16 22 19 18 19 14C19 9 12 2 12 2Z"/>
+              </svg>
+            {% else %}
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+              </svg>
+            {% endif %}
+          </button>
+        </form>
+      </nav>
+    </div>
+    
+    <div id="mobile-menu" class="hidden lg:hidden border-t border-zinc-200 bg-white">
+      <div class="px-4 py-3 space-y-2">
+        {% if current_user.is_authenticated %}
+          <form action="{{ url_for('search') }}" method="GET" class="py-2">
+            <input type="text" name="q" placeholder="Поиск..." 
+              class="w-full px-3 py-2 text-sm border border-zinc-300 rounded bg-zinc-50">
+          </form>
+          <a href="{{ url_for('create_post_route') }}" class="block py-2 hover:text-zinc-600">Создать</a>
+          <a href="{{ url_for('team') }}" class="block py-2 hover:text-zinc-600">Команда</a>
+          <a href="{{ url_for('profile', username=current_user.username) }}" class="block py-2 hover:text-zinc-600">Профиль</a>
+          <a href="{{ url_for('notifications') }}" class="block py-2 hover:text-zinc-600">Уведомления</a>
+          {% if is_admin %}
+            <a href="{{ url_for('admin_dashboard') }}" class="block py-2 hover:text-zinc-600 text-zinc-500">Админ</a>
+          {% endif %}
+          <a href="{{ url_for('settings') }}" class="block py-2 hover:text-zinc-600">Настройки</a>
+          <form action="{{ url_for('toggle_theme') }}" method="POST" class="block py-2">
+            <button type="submit" class="flex items-center gap-2 hover:text-zinc-600">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+              </svg>
+              <span>Сменить тему</span>
+            </button>
+          </form>
+          <form action="{{ url_for('logout') }}" method="POST" class="block py-2">
+            <button type="submit" class="text-zinc-500 hover:text-zinc-900">Выход</button>
+          </form>
+        {% else %}
+          <a href="{{ url_for('login') }}" class="block py-2 hover:text-zinc-600">Вход</a>
+          <a href="{{ url_for('register') }}" class="block py-2 hover:text-zinc-600">Регистрация</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+  
+  <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-8">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="mb-4 px-4 py-3 rounded-lg {% if category == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-zinc-100 text-zinc-700{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    {% block content %}{% endblock %}
+  </main>
+  
+  <footer class="border-t border-zinc-200 py-6 mt-auto">
+    <div class="max-w-4xl mx-auto px-4 text-center text-sm text-zinc-500 space-y-2">
+      <div class="flex justify-center gap-4">
+        <a href="{{ url_for('privacy') }}" class="hover:underline">Политика конфиденциальности</a>
+        <a href="{{ url_for('terms') }}" class="hover:underline">Пользовательское соглашение</a>
+      </div>
+      &copy; 2026 итп. Все права защищены.
+    </div>
+  </footer>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const menuToggle = document.getElementById('menu-toggle');
+      if (menuToggle) {
+        menuToggle.addEventListener('click', function() {
+          document.getElementById('mobile-menu').classList.toggle('hidden');
+        });
+      }
+    });
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
