@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% if title %}{{ title }} - итп{% else %}итп{% endif %}</title>
+  <title>Регистрация — итп</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,70 +13,337 @@
       --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
     }
   </style>
+  <script>
+    function getTheme() {
+      const saved = document.cookie.split('; ').find(row => row.startsWith('theme='));
+      return saved ? saved.split('=')[1] : 'light';
+    }
+    
+    function setTheme(theme) {
+      document.cookie = 'theme=' + theme + '; path=/; max-age=' + (365 * 24 * 60 * 60);
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      const theme = getTheme();
+      setTheme(theme);
+    });
+  </script>
+  <style>
+    .dark body { background-color: #18181b !important; color: #e4e4e7 !important; }
+    .dark .bg-white { background-color: #18181b !important; }
+    .dark .text-zinc-900, .dark .text-zinc-700 { color: #e4e4e7 !important; }
+    .dark .text-zinc-600, .dark .text-zinc-500 { color: #a1a1aa !important; }
+    .dark .text-zinc-400 { color: #71717a !important; }
+    .dark .border-zinc-200, .dark .border-zinc-300 { border-color: #3f3f46 !important; }
+    .dark .bg-zinc-100 { background-color: #27272a !important; }
+    .dark .bg-zinc-50 { background-color: #27272a !important; }
+    .dark .bg-zinc-800 { background-color: #27272a !important; }
+    .dark .bg-zinc-900 { background-color: #18181b !important; }
+    .dark input, .dark textarea { background-color: #27272a !important; color: #e4e4e7 !important; border-color: #3f3f46 !important; }
+    .dark input::placeholder, .dark textarea::placeholder { color: #71717a !important; }
+    .dark .bg-red-50 { background-color: #450a0a !important; }
+    .dark .text-red-700 { color: #fca5a5 !important; }
+    .dark .border-red-200 { border-color: #7f1d1d !important; }
+    .dark header { background-color: #18181b !important; border-color: #3f3f46 !important; }
+    .dark footer { border-color: #3f3f46 !important; }
+    .rounded-xl { border-radius: 0.75rem; }
+    .rounded-2xl { border-radius: 1rem; }
+  </style>
 </head>
-<body class="font-mono text-zinc-900 bg-white min-h-screen flex flex-col">
-  <header class="border-b border-zinc-200 sticky top-0 bg-white/80 backdrop-blur-sm z-50">
-    <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-      <a href="{{ url_for('index') }}" class="text-xl font-semibold tracking-tight">итп</a>
+<body class="font-mono text-zinc-900 bg-white dark:bg-zinc-900 min-h-screen flex flex-col">
+  <header class="border-b border-zinc-200 dark:border-zinc-800 sticky top-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-50">
+    <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+      <a href="{{ url_for('index') }}" class="text-xl font-semibold tracking-tight text-zinc-900 dark:text-white">итп</a>
       
-      <nav class="flex items-center gap-4 text-sm">
-        <a href="{{ url_for('index') }}" class="hover:text-zinc-600 transition-colors">Главная</a>
-        {% if current_user.is_authenticated %}
-          <a href="{{ url_for('create_post_route') }}" class="hover:text-zinc-600 transition-colors">Создать</a>
-          <a href="{{ url_for('profile', username=current_user.username) }}" class="hover:text-zinc-600 transition-colors">Профиль</a>
-        {% else %}
-          <a href="{{ url_for('login') }}" class="hover:text-zinc-600 transition-colors">Вход</a>
-          <a href="{{ url_for('register') }}" class="px-4 py-1.5 bg-zinc-900 text-white text-sm hover:bg-zinc-700 transition-colors">Регистрация</a>
-        {% endif %}
-      </nav>
+      <button onclick="setTheme(getTheme() === 'dark' ? 'light' : 'dark')" class="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-zinc-700 dark:text-zinc-300" title="Сменить тему">
+        <svg class="w-5 h-5 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+        </svg>
+        <svg class="w-5 h-5 hidden dark:block" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2L12 22M12 2C12 2 5 9 5 14C5 18 8 22 12 22C16 22 19 18 19 14C19 9 12 2 12 2Z"/>
+        </svg>
+      </button>
     </div>
   </header>
   
-  <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-8">
+  <main class="flex-1 w-full max-w-md mx-auto px-4 py-8 sm:py-12">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="mb-4 px-4 py-3 rounded-lg {% if category == 'error' %}bg-red-50 text-red-700 border border-red-200{% else %}bg-zinc-100 text-zinc-700{% endif %}">
+          <div class="mb-4 px-4 py-3 rounded-xl {% if category == 'error' %}bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800{% else %}bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300{% endif %}">
             {{ message }}
           </div>
         {% endfor %}
       {% endif %}
     {% endwith %}
     
-    <h1 class="text-2xl font-semibold mb-6">Регистрация</h1>
+    <h1 class="text-2xl font-semibold mb-6 text-zinc-900 dark:text-white">
+      {% if verification_step %}Подтверждение email{% else %}Регистрация{% endif %}
+    </h1>
     
-    <form method="POST" class="max-w-sm">
-      <input type="text" name="display_name" placeholder="Имя" required autocomplete="name"
-        class="w-full text-base border-b-2 border-zinc-300 py-3 bg-transparent focus:outline-none focus:border-zinc-900 placeholder:text-zinc-400 mb-4">
-      <input type="text" name="username" placeholder="Юзернейм" required autocomplete="username"
-        class="w-full text-base border-b-2 border-zinc-300 py-3 bg-transparent focus:outline-none focus:border-zinc-900 placeholder:text-zinc-400 mb-4">
-      <input type="email" name="email" placeholder="Email" required autocomplete="email"
-        class="w-full text-base border-b-2 border-zinc-300 py-3 bg-transparent focus:outline-none focus:border-zinc-900 placeholder:text-zinc-400 mb-4">
-      <input type="password" name="password" placeholder="Пароль (мин. 8 символов)" required autocomplete="new-password"
-        class="w-full text-base border-b-2 border-zinc-300 py-3 bg-transparent focus:outline-none focus:border-zinc-900 placeholder:text-zinc-400 mb-4">
-      
-      <div class="flex items-center gap-3 py-3 mb-4">
-        <span class="text-sm text-zinc-500">{{ captcha_question }} =</span>
-        <input type="number" name="captcha" placeholder="?" required
-          class="flex-1 text-base border-b-2 border-zinc-300 py-2 bg-transparent focus:outline-none focus:border-zinc-900">
+    {% if verification_step %}
+      <div class="space-y-5">
+        <p class="text-zinc-600 dark:text-zinc-400">Мы отправили код подтверждения на <span class="font-medium text-zinc-900 dark:text-white">{{ temp_email }}</span></p>
+        
+        <form method="POST" action="{{ url_for('verify_registration_code') }}" class="space-y-5">
+          <div>
+            <label class="block text-sm text-zinc-600 dark:text-zinc-400 mb-2">Код подтверждения (5 цифр)</label>
+            <input type="text" name="code" placeholder="00000" required maxlength="5" pattern="[0-9]{5}"
+              class="w-full text-center text-2xl font-mono border border-zinc-300 dark:border-zinc-600 rounded-xl px-4 py-3 bg-white dark:bg-zinc-800 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100 text-zinc-900 dark:text-white placeholder-zinc-400"
+              inputmode="numeric" autocomplete="off">
+          </div>
+          
+          <button type="submit" class="w-full py-3 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 text-base font-medium rounded-xl transition-colors">
+            Подтвердить и войти
+          </button>
+        </form>
+        
+        <form method="POST" action="{{ url_for('resend_verification_code') }}">
+          <button type="submit" class="w-full py-2.5 text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">
+            Не получили код? Отправить повторно
+          </button>
+        </form>
       </div>
-      
-      <button type="submit" class="w-full py-3 bg-zinc-900 text-white text-base hover:bg-zinc-700 transition-colors">Создать аккаунт</button>
-    </form>
+    {% else %}
+      <form method="POST" class="space-y-5" id="registerForm">
+        <div>
+          <label class="block text-sm text-zinc-600 dark:text-zinc-400 mb-2">Имя</label>
+          <input type="text" name="display_name" placeholder="Ваше имя" required autocomplete="name"
+            class="w-full text-base border border-zinc-300 dark:border-zinc-600 rounded-xl px-4 py-3 bg-white dark:bg-zinc-800 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100 text-zinc-900 dark:text-white placeholder-zinc-400">
+        </div>
+        
+        <div>
+          <label class="block text-sm text-zinc-600 dark:text-zinc-400 mb-2">Username</label>
+          <input type="text" name="username" placeholder="username" required autocomplete="username" minlength="3" maxlength="30"
+            class="w-full text-base border border-zinc-300 dark:border-zinc-600 rounded-xl px-4 py-3 bg-white dark:bg-zinc-800 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100 text-zinc-900 dark:text-white placeholder-zinc-400"
+            id="usernameInput">
+          <p id="usernameFeedback" class="text-xs mt-1.5 text-zinc-400 dark:text-zinc-500"></p>
+        </div>
+        
+        <div>
+          <label class="block text-sm text-zinc-600 dark:text-zinc-400 mb-2">Email</label>
+          <input type="email" name="email" placeholder="email@example.com" required autocomplete="email"
+            class="w-full text-base border border-zinc-300 dark:border-zinc-600 rounded-xl px-4 py-3 bg-white dark:bg-zinc-800 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100 text-zinc-900 dark:text-white placeholder-zinc-400"
+            id="emailInput">
+          <p id="emailFeedback" class="text-xs mt-1.5 text-zinc-400 dark:text-zinc-500"></p>
+        </div>
+        
+        <div>
+          <label class="block text-sm text-zinc-600 dark:text-zinc-400 mb-2">Пароль</label>
+          <input type="password" name="password" placeholder="Минимум 8 символов" required autocomplete="new-password" minlength="8"
+            class="w-full text-base border border-zinc-300 dark:border-zinc-600 rounded-xl px-4 py-3 bg-white dark:bg-zinc-800 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100 text-zinc-900 dark:text-white placeholder-zinc-400"
+            id="passwordInput">
+          <div class="mt-2">
+            <div class="h-1.5 bg-zinc-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+              <div id="passwordStrength" class="h-full bg-red-500 transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+          <p id="passwordFeedback" class="text-xs mt-1.5 text-zinc-400 dark:text-zinc-500"></p>
+        </div>
+        
+        <div class="flex items-center gap-3 py-2">
+          <span class="text-sm text-zinc-500 dark:text-zinc-400">{{ captcha_question }} =</span>
+          <input type="number" name="captcha" placeholder="?" required
+            class="flex-1 text-base border border-zinc-300 dark:border-zinc-600 rounded-xl px-4 py-2 bg-white dark:bg-zinc-800 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100 text-zinc-900 dark:text-white">
+        </div>
+        
+        <button type="submit" class="w-full py-3 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 text-base font-medium rounded-xl transition-colors" id="submitBtn">Создать аккаунт</button>
+      </form>
+    {% endif %}
     
     <div class="mt-6 text-center">
-      <a href="{{ url_for('login') }}" class="text-sm text-zinc-500 hover:text-zinc-900">Уже есть аккаунт? Войти</a>
+      {% if verification_step %}
+        <a href="{{ url_for('register') }}" class="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">← Начать заново</a>
+      {% else %}
+        <a href="{{ url_for('login') }}" class="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">Уже есть аккаунт? Войти</a>
+      {% endif %}
     </div>
   </main>
   
-  <footer class="border-t border-zinc-200 py-6 mt-auto">
-    <div class="max-w-4xl mx-auto px-4 text-center text-sm text-zinc-500 space-y-2">
-      <div class="flex justify-center gap-4">
-        <a href="{{ url_for('privacy') }}" class="hover:underline">Политика конфиденциальности</a>
-        <a href="{{ url_for('terms') }}" class="hover:underline">Пользовательское соглашение</a>
+  <footer class="border-t border-zinc-200 dark:border-zinc-800 py-6 mt-auto">
+    <div class="max-w-4xl mx-auto px-4 text-center text-sm text-zinc-500 dark:text-zinc-400 space-y-3">
+      <div class="flex flex-wrap justify-center gap-4">
+        <a href="{{ url_for('privacy') }}" class="hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">Политика конфиденциальности</a>
+        <a href="{{ url_for('terms') }}" class="hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors">Пользовательское соглашение</a>
       </div>
-      &copy; 2026 итп. Все права защищены.
+      <p>&copy; 2026 итп. Все права защищены.</p>
     </div>
   </footer>
+  
+  <script>
+    const usernameInput = document.getElementById('usernameInput');
+    const emailInput = document.getElementById('emailInput');
+    const passwordInput = document.getElementById('passwordInput');
+    const usernameFeedback = document.getElementById('usernameFeedback');
+    const emailFeedback = document.getElementById('emailFeedback');
+    const passwordFeedback = document.getElementById('passwordFeedback');
+    const passwordStrength = document.getElementById('passwordStrength');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    let usernameValid = false;
+    let emailValid = false;
+    let passwordValid = false;
+    
+    function checkFormValidity() {
+      if (usernameValid && emailValid && passwordValid) {
+        submitBtn.removeAttribute('disabled');
+        submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      } else {
+        submitBtn.setAttribute('disabled', 'true');
+        submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      }
+    }
+    
+    let usernameTimeout;
+    usernameInput.addEventListener('input', function() {
+      clearTimeout(usernameTimeout);
+      usernameFeedback.textContent = 'Проверка...';
+      usernameFeedback.className = 'text-xs mt-1.5 text-zinc-400 dark:text-zinc-500';
+      
+      usernameTimeout = setTimeout(function() {
+        const formData = new FormData();
+        formData.append('username', usernameInput.value);
+        
+        fetch('/check-username', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.valid) {
+            usernameFeedback.textContent = '✓ Username доступен';
+            usernameFeedback.className = 'text-xs mt-1.5 text-green-600 dark:text-green-400';
+            usernameInput.classList.remove('border-red-500');
+            usernameInput.classList.add('border-green-500');
+            usernameValid = true;
+          } else {
+            usernameFeedback.textContent = '✗ ' + data.message;
+            usernameFeedback.className = 'text-xs mt-1.5 text-red-500';
+            usernameInput.classList.remove('border-green-500');
+            usernameInput.classList.add('border-red-500');
+            usernameValid = false;
+          }
+          checkFormValidity();
+        })
+        .catch(() => {
+          usernameFeedback.textContent = 'Ошибка проверки';
+          usernameFeedback.className = 'text-xs mt-1.5 text-red-500';
+          usernameValid = false;
+          checkFormValidity();
+        });
+      }, 500);
+    });
+    
+    let emailTimeout;
+    emailInput.addEventListener('input', function() {
+      clearTimeout(emailTimeout);
+      emailFeedback.textContent = 'Проверка...';
+      emailFeedback.className = 'text-xs mt-1.5 text-zinc-400 dark:text-zinc-500';
+      
+      emailTimeout = setTimeout(function() {
+        const formData = new FormData();
+        formData.append('email', emailInput.value);
+        
+        fetch('/check-email', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.valid) {
+            emailFeedback.textContent = '✓ Email доступен';
+            emailFeedback.className = 'text-xs mt-1.5 text-green-600 dark:text-green-400';
+            emailInput.classList.remove('border-red-500');
+            emailInput.classList.add('border-green-500');
+            emailValid = true;
+          } else {
+            emailFeedback.textContent = '✗ ' + data.message;
+            emailFeedback.className = 'text-xs mt-1.5 text-red-500';
+            emailInput.classList.remove('border-green-500');
+            emailInput.classList.add('border-red-500');
+            emailValid = false;
+          }
+          checkFormValidity();
+        })
+        .catch(() => {
+          emailFeedback.textContent = 'Ошибка проверки';
+          emailFeedback.className = 'text-xs mt-1.5 text-red-500';
+          emailValid = false;
+          checkFormValidity();
+        });
+      }, 500);
+    });
+    
+    let passwordTimeout;
+    passwordInput.addEventListener('input', function() {
+      clearTimeout(passwordTimeout);
+      
+      passwordTimeout = setTimeout(function() {
+        const formData = new FormData();
+        formData.append('password', passwordInput.value);
+        
+        fetch('/check-password', {
+          method: 'POST',
+          body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+          passwordStrength.style.width = data.score + '%';
+          
+          if (data.score < 40) {
+            passwordStrength.className = 'h-full bg-red-500 transition-all duration-300';
+          } else if (data.score < 80) {
+            passwordStrength.className = 'h-full bg-yellow-500 transition-all duration-300';
+          } else {
+            passwordStrength.className = 'h-full bg-green-500 transition-all duration-300';
+          }
+          
+          if (data.valid) {
+            passwordFeedback.textContent = '✓ Надёжный пароль';
+            passwordFeedback.className = 'text-xs mt-1.5 text-green-600 dark:text-green-400';
+            passwordValid = true;
+          } else {
+            passwordFeedback.textContent = '✗ ' + data.message;
+            passwordFeedback.className = 'text-xs mt-1.5 text-red-500';
+            passwordValid = false;
+          }
+          checkFormValidity();
+        })
+        .catch(() => {
+          passwordFeedback.textContent = 'Ошибка проверки';
+          passwordFeedback.className = 'text-xs mt-1.5 text-red-500';
+          passwordValid = false;
+          checkFormValidity();
+        });
+      }, 300);
+    });
+    
+    usernameInput.addEventListener('blur', function() {
+      if (usernameInput.classList.contains('border-green-500')) {
+        usernameInput.classList.remove('border-green-500');
+      }
+      if (usernameInput.classList.contains('border-red-500')) {
+        usernameInput.classList.remove('border-red-500');
+        usernameInput.classList.add('border-zinc-300');
+      }
+    });
+    
+    emailInput.addEventListener('blur', function() {
+      if (emailInput.classList.contains('border-green-500')) {
+        emailInput.classList.remove('border-green-500');
+      }
+      if (emailInput.classList.contains('border-red-500')) {
+        emailInput.classList.remove('border-red-500');
+        emailInput.classList.add('border-zinc-300');
+      }
+    });
+    
+    checkFormValidity();
+  </script>
 </body>
 </html>

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-8">
+  <h1 class="text-2xl font-semibold mb-2">Сообщения</h1>
+  <p class="text-zinc-500">Ваши переписки</p>
+</div>
+
+{% if not conversations %}
+  <div class="text-center py-16 text-zinc-500">
+    <p class="mb-4">У вас пока нет сообщений.</p>
+    <p class="text-sm">Начните переписку с кем-нибудь из команды!</p>
+    <a href="{{ url_for('team') }}" class="underline hover:text-zinc-900 dark:hover:text-zinc-300 mt-4 inline-block">Перейти к команде</a>
+  </div>
+{% else %}
+  <div class="space-y-3">
+    {% for conv in conversations %}
+      {% set other_user = conv.user %}
+      <a href="{{ url_for('conversation', username=other_user.username) }}" class="block border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
+        <div class="flex items-center gap-3">
+          {% if other_user.avatar and other_user.avatar != 'default_avatar.png' %}
+            <img src="{{ url_for('avatar_file', filename=other_user.avatar) }}" alt="Avatar" class="w-12 h-12 rounded-full object-cover bg-zinc-100">
+          {% else %}
+            <div class="w-12 h-12 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-lg font-semibold text-zinc-500 dark:text-zinc-400">
+              {{ other_user.display_name[0].upper() if other_user.display_name else other_user.username[0].upper() }}
+            </div>
+          {% endif %}
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-medium truncate">{{ other_user.display_name if other_user.display_name else other_user.username }}</span>
+              {% if other_user.is_verified %}
+                <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                </svg>
+              {% endif %}
+            </div>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 truncate">
+              {% if conv.last_message.sender_id == current_user.id %}Вы: {% endif %}
+              {{ conv.last_message.content[:50] }}{% if conv.last_message.content|length > 50 %}...{% endif %}
+            </p>
+          </div>
+          {% if conv.unread_count > 0 %}
+            <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex-shrink-0">
+              {{ conv.unread_count }}
+            </span>
+          {% endif %}
+          <span class="text-xs text-zinc-400 flex-shrink-0">
+            {{ format_date(conv.last_message.created_at) }}
+          </span>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

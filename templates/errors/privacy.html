@@ -1,47 +1,56 @@
-<!doctype html>
-<html lang="{{ lang }}" class="{% if dark_mode %}dark{% endif %}">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Политика конфиденциальности - итп</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-  <style type="text/tailwindcss">
-    html.dark { color-scheme: dark; }
-    html.dark body { background-color: #0f0f10; color: #e4e4e7; }
-    html.dark h1, html.dark h2, html.dark h3 { color: #fff; }
-  </style>
-</head>
-<body class="font-mono text-zinc-900 bg-white min-h-screen flex flex-col">
-  <header class="border-b border-zinc-200 sticky top-0 bg-white/80 backdrop-blur-sm z-50">
-    <div class="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
-      <a href="{{ url_for('index') }}" class="text-xl font-semibold tracking-tight">итп</a>
-      <a href="{{ url_for('index') }}" class="text-sm hover:underline">← На главную</a>
+{% extends "base.html" %}
+
+{% block title %}Политика конфиденциальности — {{ config.SITE_NAME }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-12 px-4">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">Политика конфиденциальности</h1>
+    
+    <div class="prose dark:prose-invert max-w-none space-y-6 text-gray-700 dark:text-gray-300">
+        <p>Последнее обновление: {{ now.strftime('%d.%m.%Y') }}</p>
+        
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">1. Введение</h2>
+        <p>Настоящая Политика конфиденциальности описывает, как мы собираем, используем и защищаем вашу информацию при использовании нашего сервиса.</p>
+        
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">2. Сбор информации</h2>
+        <p>Мы можем собирать следующую информацию:</p>
+        <ul class="list-disc pl-6 space-y-2">
+            <li>Имя пользователя и email при регистрации</li>
+            <li>Информация профиля (аватар, баннер, био)</li>
+            <li>Контент, который вы публикуете (посты, комментарии)</li>
+            <li>Данные об использовании сервиса</li>
+            <li>IP-адрес и данные о устройстве</li>
+        </ul>
+        
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">3. Использование информации</h2>
+        <p>Мы используем собранную информацию для:</p>
+        <ul class="list-disc pl-6 space-y-2">
+            <li>Предоставления и улучшения нашего сервиса</li>
+            <li>Аутентификации и безопасности аккаунта</li>
+            <li>Отправки важных уведомлений</li>
+            <li>Предотвращения мошенничества и злоупотреблений</li>
+        </ul>
+        
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">4. Защита данных</h2>
+        <p>Мы применяем соответствующие технические и организационные меры для защиты вашей личной информации от несанкционированного доступа, изменения или удаления.</p>
+        
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">5. Cookies</h2>
+        <p>Мы используем cookies для улучшения пользовательского опыта. Вы можете отключить cookies в настройках браузера.</p>
+        
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">6. Раскрытие третьим лицам</h2>
+        <p>Мы не продаём и не передаём вашу личную информацию третьим лицам без вашего согласия, за исключением случаев, предусмотренных законом.</p>
+        
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">7. Ваши права</h2>
+        <p>Вы имеете право на:</p>
+        <ul class="list-disc pl-6 space-y-2">
+            <li>Доступ к своим данным</li>
+            <li>Исправление неточных данных</li>
+            <li>Удаление аккаунта</li>
+            <li>Отказ от получения уведомлений</li>
+        </ul>
+        
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">8. Контакты</h2>
+        <p>По вопросам конфиденциальности обращайтесь: {{ config.CONTACT_EMAIL }}</p>
     </div>
-  </header>
-  <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-8">
-    <h1 class="text-2xl font-semibold mb-6">Политика конфиденциальности</h1>
-    <div class="prose prose-zinc max-w-none space-y-4 text-sm">
-      <p>Последнее обновление: 05.02.2026</p>
-      <h2 class="text-lg font-medium">1. Общие положения</h2>
-      <p>Социальная сеть "итп" (далее - "мы", "нас" или "наш") уважает вашу конфиденциальность. Настоящая политика объясняет, какие данные мы собираем и как мы их используем.</p>
-      <h2 class="text-lg font-medium">2. Собираемые данные</h2>
-      <p>Мы собираем данные, которые вы предоставляете при регистрации: имя пользователя, email и пароль. Также мы собираем контент, который вы публикуете: посты, комментарии и загружаемые медиафайлы.</p>
-      <h2 class="text-lg font-medium">3. Использование данных</h2>
-      <p>Ваши данные используются для предоставления услуг социальной сети, включая создание и отображение публикаций, управление аккаунтом и коммуникацию с вами.</p>
-      <h2 class="text-lg font-medium">4. Хранение данных</h2>
-      <p>Все данные хранятся на защищённых серверах. Мы используем шифрование паролей с помощью bcrypt. Ваши медиафайлы хранятся в защищённых директориях.</p>
-      <h2 class="text-lg font-medium">5. Cookies</h2>
-      <p>Мы используем cookies для аутентификации и сохранения ваших предпочтений. Вы можете отключить cookies в настройках браузера.</p>
-      <h2 class="text-lg font-medium">6. Раскрытие данных</h2>
-      <p>Мы не продаём и не передаём ваши личные данные третьим лицам, за исключением случаев, предусмотренных законом.</p>
-      <h2 class="text-lg font-medium">7. Контакты</h2>
-      <p>По вопросам конфиденциальности обращайтесь: privacy@itp.local</p>
-    </div>
-  </main>
-  <footer class="border-t border-zinc-200 py-6 mt-auto">
-    <div class="max-w-4xl mx-auto px-4 text-center text-sm text-zinc-500">
-      &copy; 2026 итп. Все права защищены.
-    </div>
-  </footer>
-</body>
-</html>
+</div>
+{% endblock %}

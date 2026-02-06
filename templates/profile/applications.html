@@ -15,7 +15,7 @@
         {% if app.photos %}
           <div class="flex gap-2 mt-2">
             {% for photo in app.photos %}
-              <img src="{{ url_for('uploaded_file', filename=photo) }}" alt="" class="w-12 h-12 rounded object-cover bg-zinc-100">
+              <img src="{{ url_for('application_media_file', filename=photo) }}" alt="" class="w-12 h-12 rounded object-cover bg-zinc-100">
             {% endfor %}
           </div>
         {% endif %}

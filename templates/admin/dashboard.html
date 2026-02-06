@@ -1,79 +1,182 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1 class="text-2xl font-semibold mb-6">Админ-панель</h1>
+<h1 class="text-2xl font-semibold mb-8">Панель управления</h1>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-  <div class="border border-zinc-200 rounded-lg p-4 bg-white">
-    <p class="text-sm text-zinc-500">Пользователи</p>
-    <p class="text-2xl font-semibold">{{ stats.total_users }}</p>
+  <div class="border border-zinc-200 rounded-xl p-5 bg-white">
+    <p class="text-sm text-zinc-500 mb-1">Пользователи</p>
+    <p class="text-3xl font-semibold">{{ stats.total_users }}</p>
   </div>
-  <div class="border border-zinc-200 rounded-lg p-4 bg-white">
-    <p class="text-sm text-zinc-500">Посты</p>
-    <p class="text-2xl font-semibold">{{ stats.total_posts }}</p>
+  <div class="border border-zinc-200 rounded-xl p-5 bg-white">
+    <p class="text-sm text-zinc-500 mb-1">Посты</p>
+    <p class="text-3xl font-semibold">{{ stats.total_posts }}</p>
   </div>
-  <div class="border border-zinc-200 rounded-lg p-4 bg-white">
-    <p class="text-sm text-zinc-500">Комментарии</p>
-    <p class="text-2xl font-semibold">{{ stats.total_comments }}</p>
+  <div class="border border-zinc-200 rounded-xl p-5 bg-white">
+    <p class="text-sm text-zinc-500 mb-1">Комментарии</p>
+    <p class="text-3xl font-semibold">{{ stats.total_comments }}</p>
   </div>
-  <div class="border border-zinc-200 rounded-lg p-4 bg-white">
-    <p class="text-sm text-zinc-500">Верифицированные</p>
-    <p class="text-2xl font-semibold">{{ stats.verified_users }}</p>
+  <div class="border border-zinc-200 rounded-xl p-5 bg-white">
+    <p class="text-sm text-zinc-500 mb-1">Верифицированные</p>
+    <p class="text-3xl font-semibold">{{ stats.verified_users }}</p>
   </div>
 </div>
 
-{% if current_user.role == 'creator' %}
-<div class="border border-yellow-200 rounded-lg p-5 bg-yellow-50 mb-8">
-  <h2 class="text-lg font-semibold mb-4 text-yellow-800">Режим обслуживания</h2>
-  
-  <form action="{{ url_for('admin_toggle_maintenance') }}" method="POST">
-    <div class="flex items-center gap-4">
-      <label class="flex items-center gap-2">
-        <input type="radio" name="enabled" value="false" checked>
-        <span>Обычный режим</span>
-      </label>
-      <label class="flex items-center gap-2">
-        <input type="radio" name="enabled" value="true">
-        <span>Режим обслуживания</span>
-      </label>
-      <button type="submit" class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700">
-        Сохранить
-      </button>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+  {% if current_user.role == 'creator' %}
+  <div class="border border-zinc-200 rounded-xl p-6 bg-white">
+    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+      <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+      </svg>
+      Настройки системы
+    </h2>
+    <div class="space-y-4">
+      <form action="{{ url_for('admin_toggle_maintenance') }}" method="POST" class="p-4 bg-zinc-50 rounded-xl">
+        <h3 class="font-medium mb-3">Режим обслуживания</h3>
+        <div class="flex flex-wrap items-center gap-4">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="enabled" value="false" {% if not maintenance_mode %}checked{% endif %} class="w-4 h-4 text-purple-600">
+            <span>Обычный режим</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="enabled" value="true" {% if maintenance_mode %}checked{% endif %} class="w-4 h-4 text-purple-600">
+            <span>Режим обслуживания</span>
+          </label>
+          <button type="submit" class="px-4 py-1.5 bg-purple-600 text-white hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 rounded-lg transition-colors text-sm">
+            Сохранить
+          </button>
+        </div>
+        <p class="text-xs text-zinc-500 mt-2">В режиме обслуживания обычные пользователи не смогут войти на сайт.</p>
+      </form>
     </div>
-    <p class="text-sm text-yellow-700 mt-2">В режиме обслуживания обычные пользователи не смогут создавать посты и комментарии.</p>
-  </form>
-</div>
-{% endif %}
-
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-  <div class="border border-zinc-200 rounded-lg p-5 bg-white">
-    <h2 class="text-lg font-semibold mb-4">Пользователи</h2>
-    <div class="space-y-2">
-      <a href="{{ url_for('admin_users') }}" class="block py-2 px-3 hover:bg-zinc-50 rounded">Управление пользователями →</a>
-      <a href="{{ url_for('admin_applications') }}" class="block py-2 px-3 hover:bg-zinc-50 rounded">Заявки на верификацию →</a>
-      <a href="{{ url_for('admin_reports') }}" class="block py-2 px-3 hover:bg-zinc-50 rounded">Жалобы →</a>
+  </div>
+  {% endif %}
+  
+  <div class="border border-zinc-200 rounded-xl p-6 bg-white">
+    <h2 class="text-lg font-semibold mb-4">Модерация</h2>
+    <div class="space-y-3">
+      <a href="{{ url_for('admin_users') }}" class="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-lg transition-colors">
+        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+          <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+        </div>
+        <div class="flex-1">
+          <p class="font-medium">Пользователи</p>
+          <p class="text-sm text-zinc-500">Управление пользователями</p>
+        </div>
+        <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+      <a href="{{ url_for('admin_applications') }}" class="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-lg transition-colors">
+        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div class="flex-1">
+          <p class="font-medium">Верификация</p>
+          <p class="text-sm text-zinc-500">Заявки на верификацию</p>
+        </div>
+        <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+      <a href="{{ url_for('admin_reports') }}" class="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-lg transition-colors">
+        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+          <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <div class="flex-1">
+          <p class="font-medium">Жалобы</p>
+          <p class="text-sm text-zinc-500">Рассмотрение жалоб</p>
+        </div>
+        <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+      <a href="{{ url_for('admin_statistics') }}" class="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-lg transition-colors">
+        <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
+          <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+        <div class="flex-1">
+          <p class="font-medium">Статистика</p>
+          <p class="text-sm text-zinc-500">Аналитика сайта</p>
+        </div>
+        <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
       {% if current_user.role == 'creator' %}
-        <a href="{{ url_for('admin_logs') }}" class="block py-2 px-3 hover:bg-zinc-50 rounded">Логи администраторов →</a>
+      <a href="{{ url_for('admin_logs') }}" class="flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-lg transition-colors">
+        <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
+          <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <div class="flex-1">
+          <p class="font-medium">Логи</p>
+          <p class="text-sm text-zinc-500">История действий</p>
+        </div>
+        <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
       {% endif %}
     </div>
   </div>
-  
-  <div class="border border-zinc-200 rounded-lg p-5 bg-white">
-    <h2 class="text-lg font-semibold mb-4">Топ пользователей</h2>
-    <div class="space-y-2">
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div class="border border-zinc-200 rounded-xl p-5 bg-white">
+    <h2 class="text-lg font-semibold mb-4">Активные пользователи</h2>
+    <div class="space-y-3">
       {% for user in top_users[:5] %}
-        <div class="flex items-center gap-2 py-1">
+        <div class="flex items-center gap-3 py-2">
           {% if user.avatar and user.avatar != 'default_avatar.png' %}
-            <img src="{{ url_for('uploaded_file', filename=user.avatar) }}" alt="" class="w-6 h-6 rounded-full bg-zinc-100">
+            <img src="{{ url_for('avatar_file', filename=user.avatar) }}" alt="" class="w-10 h-10 rounded-full bg-zinc-100 object-cover">
           {% else %}
-            <div class="w-6 h-6 rounded-full bg-zinc-200 flex items-center justify-center text-xs font-semibold text-zinc-500">
+            <div class="w-10 h-10 rounded-full bg-zinc-200 flex items-center justify-center text-sm font-semibold text-zinc-500">
               {{ user.display_name[0].upper() }}
             </div>
           {% endif %}
-          <a href="{{ url_for('profile', username=user.username) }}" class="hover:underline">{{ user.display_name }}</a>
-          <span class="text-zinc-400 text-sm">{{ user.activity_score }} баллов</span>
+          <div class="flex-1 min-w-0">
+            <a href="{{ url_for('profile', username=user.username) }}" class="hover:underline truncate block font-medium">{{ user.display_name }}</a>
+            <p class="text-zinc-500 text-xs">@{{ user.username }}</p>
+          </div>
+          <div class="text-right">
+            <p class="font-semibold text-sm">{{ user.activity_score }}</p>
+            <p class="text-xs text-zinc-500">баллов</p>
+          </div>
         </div>
       {% endfor %}
+    </div>
+  </div>
+  
+  <div class="border border-zinc-200 rounded-xl p-5 bg-white">
+    <h2 class="text-lg font-semibold mb-4">Быстрые действия</h2>
+    <div class="grid grid-cols-2 gap-3">
+      <a href="{{ url_for('admin_users') }}?role=moderator" class="p-4 bg-zinc-50 rounded-xl hover:bg-zinc-100 transition-colors text-center">
+        <p class="font-medium">Модераторы</p>
+        <p class="text-sm text-zinc-500">Управление</p>
+      </a>
+      <a href="{{ url_for('admin_users') }}?role=admin" class="p-4 bg-zinc-50 rounded-xl hover:bg-zinc-100 transition-colors text-center">
+        <p class="font-medium">Админы</p>
+        <p class="text-sm text-zinc-500">Управление</p>
+      </a>
+      <a href="{{ url_for('admin_applications') }}?status=pending" class="p-4 bg-zinc-50 rounded-xl hover:bg-zinc-100 transition-colors text-center">
+        <p class="font-medium">Ожидающие</p>
+        <p class="text-sm text-zinc-500">Заявки</p>
+      </a>
+      <a href="{{ url_for('admin_reports') }}?status=pending" class="p-4 bg-zinc-50 rounded-xl hover:bg-zinc-100 transition-colors text-center">
+        <p class="font-medium">Непрочитанные</p>
+        <p class="text-sm text-zinc-500">Жалобы</p>
+      </a>
     </div>
   </div>
 </div>

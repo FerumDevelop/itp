@@ -1,92 +1,119 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="mb-6">
-  <div class="h-32 bg-zinc-100 rounded-lg mb-12 overflow-hidden">
+<div class="mb-8">
+  <div class="h-36 bg-zinc-100 rounded-2xl mb-14 overflow-hidden">
     {% if profile_user.banner and profile_user.banner != 'default_banner.png' %}
-      <img src="{{ url_for('uploaded_file', filename=profile_user.banner) }}" alt="Banner" class="w-full h-full object-cover">
+      <img src="{{ url_for('banner_file', filename=profile_user.banner) }}" alt="Banner" class="w-full h-full object-cover">
     {% endif %}
   </div>
   
-  <div class="flex items-start gap-4 px-4 -mt-16 relative">
+  <div class="flex items-start gap-4 px-4 -mt-12 relative">
     {% set avatar_initial = profile_user.display_name[0].upper() if profile_user.display_name else profile_user.username[0].upper() %}
     {% if profile_user.avatar and profile_user.avatar != 'default_avatar.png' %}
-      <img src="{{ url_for('uploaded_file', filename=profile_user.avatar) }}" alt="Avatar" 
-        class="w-24 h-24 rounded-full border-4 border-white object-cover bg-zinc-100 shadow">
+      <img src="{{ url_for('avatar_file', filename=profile_user.avatar) }}" alt="Avatar" 
+        class="w-28 h-28 rounded-2xl border-4 border-white object-cover bg-zinc-100 shadow-lg">
     {% else %}
-      <div class="w-24 h-24 rounded-full border-4 border-white bg-zinc-200 flex items-center justify-center text-2xl font-semibold text-zinc-500 shadow">
+      <div class="w-28 h-28 rounded-2xl border-4 border-white bg-zinc-200 flex items-center justify-center text-3xl font-semibold text-zinc-500 shadow-lg">
         {{ avatar_initial }}
       </div>
     {% endif %}
     
     <div class="flex-1 pt-2">
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 mb-1">
         <h1 class="text-2xl font-semibold">{{ profile_user.display_name }}</h1>
         {% if profile_user.is_verified %}
-          <span class="text-blue-500 text-xl">✓</span>
+          <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+          </svg>
         {% endif %}
       </div>
-      <p class="text-zinc-500">@{{ profile_user.username }}</p>
+      <p class="text-zinc-500 mb-2">@{{ profile_user.username }}</p>
       {% if profile_user.role != 'user' %}
-        <span class="inline-block mt-1 px-2 py-0.5 bg-zinc-100 text-zinc-600 text-xs rounded">{{ profile_user.role }}</span>
+        <span class="inline-block mt-1 px-3 py-1 bg-zinc-100 text-zinc-600 text-xs rounded-lg font-medium">{{ profile_user.role }}</span>
       {% endif %}
     </div>
     
     {% if current_user.is_authenticated and current_user.id == profile_user.id %}
-      <a href="{{ url_for('settings') }}" class="mt-2 px-4 py-1.5 border border-zinc-300 rounded hover:bg-zinc-50 transition-colors">Редактировать профиль</a>
+      <a href="{{ url_for('settings') }}" class="mt-2 px-5 py-2 border border-zinc-300 rounded-xl hover:bg-zinc-50 transition-colors font-medium">Редактировать профиль</a>
     {% elif current_user.is_authenticated and current_user.id != profile_user.id %}
-      <form action="{{ url_for('subscribe', user_id=profile_user.id) }}" method="POST" class="mt-2">
-        <button type="submit" class="px-4 py-1.5 {% if is_subscribed %}bg-zinc-200{% else %}bg-zinc-900 text-white{% endif %} rounded hover:bg-zinc-700 transition-colors">
-          {{ 'Отписаться' if is_subscribed else 'Подписаться' }}
-        </button>
-      </form>
+      <div class="flex gap-2 mt-2">
+        <form action="{{ url_for('subscribe', user_id=profile_user.id) }}" method="POST">
+          <button type="submit" class="px-5 py-2 {% if is_subscribed %}bg-zinc-200 text-zinc-900{% else %}bg-zinc-900 text-white hover:bg-zinc-800{% endif %} dark:{% if is_subscribed %}bg-zinc-700 text-white{% else %}bg-zinc-100 text-zinc-900 hover:bg-zinc-200{% endif %} rounded-xl transition-colors font-medium">
+            {{ 'Отписаться' if is_subscribed else 'Подписаться' }}
+          </button>
+        </form>
+        <a href="{{ url_for('conversation', username=profile_user.username) }}" class="px-5 py-2 border border-zinc-300 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors font-medium">
+          <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+          </svg>
+          Сообщение
+        </a>
+      </div>
     {% endif %}
   </div>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
   <div class="md:col-span-2">
     {% if profile_user.bio %}
-      <p class="whitespace-pre-wrap mb-6">{{ profile_user.bio }}</p>
+      <div class="bg-zinc-50 rounded-xl p-5 mb-6">
+        <p class="whitespace-pre-wrap leading-relaxed">{{ profile_user.bio }}</p>
+      </div>
     {% endif %}
     
-    <h2 class="text-xl font-semibold mb-4">Посты ({{ posts|length }})</h2>
+    <h2 class="text-xl font-semibold mb-5">Посты ({{ posts|length }})</h2>
     
     {% if posts %}
       <div class="space-y-4">
         {% for post in posts %}
-          <article class="border border-zinc-200 rounded-lg p-4 hover:border-zinc-300 transition-colors bg-white">
+          <article class="border border-zinc-200 rounded-xl p-5 hover:border-zinc-300 transition-colors bg-white">
             <a href="{{ url_for('view_post', post_id=post.id) }}" class="block">
-              <p class="whitespace-pre-wrap mb-2">{{ post.content[:200] }}{% if post.content|length > 200 %}...{% endif %}</p>
-              <p class="text-sm text-zinc-400">{{ post.created_at[:10] if post.created_at else '' }}</p>
+              <p class="whitespace-pre-wrap mb-3 {% if post.content|length > 150 %}line-clamp-2{% endif %}">{{ post.content[:150] }}{% if post.content|length > 150 %}...{% endif %}</p>
+              <div class="flex items-center gap-4 text-sm text-zinc-500">
+                <span>{{ format_date(post.created_at) }}</span>
+                <span class="flex items-center gap-1">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                  </svg>
+                  {{ post.comment_count }}
+                </span>
+                <span class="flex items-center gap-1">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                  {{ post.view_count if post.view_count else 0 }}
+                </span>
+              </div>
             </a>
           </article>
         {% endfor %}
       </div>
     {% else %}
-      <p class="text-zinc-500">Пока нет постов.</p>
+      <p class="text-zinc-500 py-8 text-center">Пока нет постов.</p>
     {% endif %}
   </div>
   
   <div>
-    <div class="border border-zinc-200 rounded-lg p-4 bg-zinc-50">
-      <h3 class="font-medium mb-3">Статистика</h3>
-      <div class="space-y-2 text-sm">
-        <div class="flex justify-between">
+    <div class="border border-zinc-200 rounded-xl p-5 bg-white">
+      <h3 class="font-medium mb-4 text-lg">Статистика</h3>
+      <div class="space-y-3">
+        <div class="flex items-center justify-between py-2 border-b border-zinc-100">
           <span class="text-zinc-500">Посты</span>
-          <span>{{ profile_user.post_count }}</span>
+          <span class="font-medium">{{ profile_user.post_count }}</span>
         </div>
-        <div class="flex justify-between">
+        <div class="flex items-center justify-between py-2 border-b border-zinc-100">
           <span class="text-zinc-500">Подписчики</span>
-          <a href="{{ url_for('subscribers', username=profile_user.username) }}" class="hover:underline">{{ subscriber_count }}</a>
+          <a href="{{ url_for('subscribers', username=profile_user.username) }}" class="font-medium hover:text-zinc-700 transition-colors">{{ subscriber_count }}</a>
         </div>
-        <div class="flex justify-between">
+        <div class="flex items-center justify-between py-2 border-b border-zinc-100">
           <span class="text-zinc-500">Подписки</span>
-          <a href="{{ url_for('subscriptions', username=profile_user.username) }}" class="hover:underline">{{ subscription_count }}</a>
+          <a href="{{ url_for('subscriptions', username=profile_user.username) }}" class="font-medium hover:text-zinc-700 transition-colors">{{ subscription_count }}</a>
         </div>
-        <div class="flex justify-between">
+        <div class="flex items-center justify-between py-2">
           <span class="text-zinc-500">Регистрация</span>
-          <span>{{ profile_user.created_at[:10] if profile_user.created_at else '' }}</span>
+          <span class="font-medium">{{ format_date(profile_user.created_at) }}</span>
         </div>
       </div>
     </div>

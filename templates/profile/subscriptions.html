@@ -1,44 +1,51 @@
 {% extends "base.html" %}
 
+{% block title %}Подписки{% endblock %}
+
 {% block content %}
-<div class="max-w-2xl mx-auto space-y-6">
-  <div class="flex items-center gap-4">
-    <img src="{{ url_for('uploaded_file', filename='avatars/' + (profile_user.avatar if profile_user.avatar else 'default_avatar.png')) }}" class="w-16 h-16 rounded-full object-cover" alt="{{ profile_user.display_name }}">
-    <div>
-      <h1 class="text-2xl font-semibold">{{ profile_user.display_name }}</h1>
-      <p class="text-zinc-500">@{{ profile_user.username }}</p>
-    </div>
-  </div>
-  
-  <div class="flex gap-4 border-b border-zinc-200">
-    <a href="{{ url_for('profile', username=profile_user.username) }}" class="px-4 py-2 text-zinc-500 hover:text-zinc-900">Посты</a>
-    <a href="{{ url_for('subscribers', username=profile_user.username) }}" class="px-4 py-2 text-zinc-500 hover:text-zinc-900">Подписчики</a>
-    <a href="{{ url_for('subscriptions', username=profile_user.username) }}" class="px-4 py-2 border-b-2 border-zinc-900">Подписки ({{ subscriptions|length }})</a>
-  </div>
-  
-  {% if subscriptions %}
-    <div class="space-y-4">
-      {% for user in subscriptions %}
-        <div class="flex items-center justify-between p-4 bg-zinc-50 rounded-lg">
-          <div class="flex items-center gap-3">
-            <img src="{{ url_for('uploaded_file', filename='avatars/' + (user.avatar if user.avatar else 'default_avatar.png')) }}" class="w-12 h-12 rounded-full object-cover" alt="{{ user.display_name }}">
-            <div>
-              <a href="{{ url_for('profile', username=user.username) }}" class="font-medium hover:underline">{{ user.display_name }}</a>
-              <p class="text-sm text-zinc-500">@{{ user.username }}</p>
-            </div>
-          </div>
-          {% if current_user.is_authenticated and current_user.id != user.id %}
-            <form action="{{ url_for('subscribe', user_id=user.id) }}" method="POST">
-              <button type="submit" class="px-4 py-1.5 text-sm {% if user.is_subscribed %}bg-zinc-200{% else %}bg-zinc-900 text-white{% endif %} rounded hover:bg-zinc-700">
-                {{ 'Отписаться' if user.is_subscribed else 'Подписаться' }}
-              </button>
-            </form>
-          {% endif %}
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p class="text-zinc-500 text-center py-8">Нет подписок</p>
-  {% endif %}
+<div class="mb-8">
+  <a href="{{ url_for('profile', username=profile_user.username) }}" class="inline-flex items-center gap-2 text-zinc-500 hover:text-zinc-900 mb-4 transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+    </svg>
+    Назад к профилю
+  </a>
+  <h1 class="text-2xl font-semibold">Подписки</h1>
+  <p class="text-zinc-500">{{ profile_user.display_name }}</p>
 </div>
+
+{% if subscriptions %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+    {% for user in subscriptions %}
+      <div class="border border-zinc-200 rounded-xl p-5 bg-white hover:border-zinc-300 transition-colors">
+        <div class="flex items-center gap-3 mb-3">
+          <a href="{{ url_for('profile', username=user.username) }}">
+            {% if user.avatar and user.avatar != 'default_avatar.png' %}
+              <img src="{{ url_for('avatar_file', filename=user.avatar) }}" alt="" class="w-12 h-12 rounded-full bg-zinc-100 object-cover">
+            {% else %}
+              <div class="w-12 h-12 rounded-full bg-zinc-200 flex items-center justify-center text-lg font-semibold text-zinc-500">
+                {{ user.display_name[0].upper() }}
+              </div>
+            {% endif %}
+          </a>
+          <div class="flex-1 min-w-0">
+            <a href="{{ url_for('profile', username=user.username) }}" class="font-medium hover:underline truncate block">{{ user.display_name }}</a>
+            <p class="text-zinc-500 text-sm truncate">@{{ user.username }}</p>
+          </div>
+        </div>
+        {% if current_user.is_authenticated and current_user.id != user.id %}
+          <form action="{{ url_for('subscribe', user_id=user.id) }}" method="POST">
+            <button type="submit" class="w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors {% if user.is_subscribed %}bg-zinc-200 text-zinc-700 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600{% else %}bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200{% endif %}">
+              {{ 'Отписаться' if user.is_subscribed else 'Подписаться' }}
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="text-center py-16 text-zinc-500">
+    <p>{{ profile_user.display_name }} пока ни на кого не подписан.</p>
+  </div>
+{% endif %}
 {% endblock %}

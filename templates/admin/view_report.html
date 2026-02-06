@@ -62,8 +62,8 @@
     
     {% if report.status == 'pending' %}
       <form method="POST" class="flex gap-2 pt-4 border-t border-zinc-200">
-        <button type="submit" name="action" value="resolve" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Отметить как решённую</button>
-        <button type="submit" name="action" value="dismiss" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">Отклонить жалобу</button>
+        <button type="submit" name="action" value="resolve" class="px-4 py-2 bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 rounded transition-colors">Отметить как решённую</button>
+        <button type="submit" name="action" value="dismiss" class="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 dark:bg-zinc-600 dark:hover:bg-zinc-500 rounded transition-colors">Отклонить жалобу</button>
       </form>
     {% endif %}
   </div>

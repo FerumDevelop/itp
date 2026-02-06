@@ -1,15 +1,26 @@
 {% extends "base.html" %}
 
+{% block title %}Редактировать пост{% endblock %}
+
 {% block content %}
+<a href="{{ url_for('view_post', post_id=post.id) }}" class="inline-flex items-center gap-2 text-zinc-500 hover:text-zinc-900 mb-6 transition-colors">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+  </svg>
+  Назад к посту
+</a>
+
 <h1 class="text-2xl font-semibold mb-6">Редактировать пост</h1>
 
-<form method="POST" class="max-w-xl">
-  <div class="mb-4">
-    <label class="block text-sm text-zinc-600 mb-1">Текст поста</label>
-    <textarea name="content" rows="6" required
-      class="w-full p-3 border border-zinc-300 rounded-lg focus:outline-none focus:border-zinc-900">{{ post.content }}</textarea>
+<form method="POST" class="max-w-2xl">
+  <div class="mb-6">
+    <label class="block text-sm text-zinc-600 mb-2">Текст поста</label>
+    <textarea name="content" rows="8" class="w-full p-4 border border-zinc-300 rounded-xl focus:outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-100 transition-all resize-none">{{ post.content }}</textarea>
   </div>
   
-  <button type="submit" class="px-6 py-3 bg-zinc-900 text-white hover:bg-zinc-700 transition-colors">Сохранить</button>
+  <div class="flex gap-4">
+    <button type="submit" class="px-6 py-2.5 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 rounded-xl transition-colors font-medium">Сохранить</button>
+    <a href="{{ url_for('view_post', post_id=post.id) }}" class="px-6 py-2.5 border border-zinc-300 dark:border-zinc-600 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">Отмена</a>
+  </div>
 </form>
 {% endblock %}

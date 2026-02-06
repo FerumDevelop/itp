@@ -4,11 +4,43 @@ Provides CRUD operations for all data types.
 """
 import json
 import os
+import logging
+import time
+import tempfile
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from pathlib import Path
 
 import config
+
+logger = logging.getLogger(__name__)
+
+
+def atomic_save(path: Path, data: str) -> bool:
+    """Save data atomically using a temporary file."""
+    try:
+        # Create temp file in the same directory for atomic rename
+        temp_fd, temp_path = tempfile.mkstemp(
+            dir=path.parent,
+            prefix='.tmp_',
+            suffix='.json'
+        )
+        try:
+            with os.fdopen(temp_fd, 'w', encoding='utf-8') as f:
+                f.write(data)
+            # Atomic rename
+            os.replace(temp_path, path)
+            return True
+        except Exception:
+            # Clean up temp file if rename failed
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+            return False
+    except Exception as e:
+        logger.error(f"Atomic save failed: {e}")
+        return False
 
 
 class DataManager:
@@ -25,7 +57,9 @@ class DataManager:
             'reports': config.DATA_DIR / 'reports.json',
             'notifications': config.DATA_DIR / 'notifications.json',
             'subscriptions': config.DATA_DIR / 'subscriptions.json',
-            'admin_logs': config.DATA_DIR / 'admin_logs.json'
+            'admin_logs': config.DATA_DIR / 'admin_logs.json',
+            'post_views': config.DATA_DIR / 'post_views.json',
+            'messages': config.DATA_DIR / 'messages.json'
         }
         self._ensure_files_exist()
     
@@ -43,18 +77,47 @@ class DataManager:
                 with open(path, 'r', encoding='utf-8') as f:
                     return json.load(f)
             return []
-        except (json.JSONDecodeError, FileNotFoundError):
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error for key '{key}': {e}")
+            return []
+        except FileNotFoundError:
+            logger.error(f"File not found for key '{key}': {self.data_files[key]}")
+            return []
+        except Exception as e:
+            logger.error(f"Failed to load data for key '{key}': {e}")
             return []
     
     def _save_data(self, key: str, data: List[Dict]) -> bool:
-        """Save data to JSON file."""
-        try:
-            path = self.data_files[key]
-            with open(path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2, default=str)
-            return True
-        except Exception:
-            return False
+        """Save data to JSON file with atomic write and retry."""
+        path = self.data_files[key]
+        max_retries = 3
+        retry_delay = 0.1
+        
+        for attempt in range(max_retries):
+            try:
+                # Serialize data to JSON string first
+                json_data = json.dumps(data, ensure_ascii=False, indent=2, default=str)
+                
+                # Try atomic save
+                if atomic_save(path, json_data):
+                    return True
+                
+                # If atomic save failed, try direct write
+                with open(path, 'w', encoding='utf-8') as f:
+                    f.write(json_data)
+                return True
+                
+            except PermissionError as e:
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                else:
+                    logger.error(f"Permission denied saving '{key}' after {max_retries} attempts: {e}")
+            except Exception as e:
+                logger.error(f"Failed to save data for key '{key}' (attempt {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+        
+        return False
     
     def get_all(self, key: str) -> List[Dict]:
         """Get all records from a collection."""
@@ -561,3 +624,118 @@ def get_admin_logs_by_admin(admin_id: int, limit: int = 50) -> List[Dict]:
     logs = data_manager.get_all_by_field('admin_logs', 'admin_id', admin_id)
     logs.sort(key=lambda x: x.get('created_at', ''), reverse=True)
     return logs[:limit]
+
+
+def create_post_view(post_id: int, ip_address: str) -> bool:
+    """Record a view for a post, preventing duplicate views from same IP."""
+    views = data_manager.get_all_by_field('post_views', 'post_id', post_id)
+    
+    for view in views:
+        if view.get('ip_address') == ip_address:
+            viewed_at = datetime.fromisoformat(view.get('viewed_at', '2000-01-01'))
+            if (datetime.utcnow() - viewed_at).total_seconds() < 3600:
+                return False
+    
+    view_data = {
+        'post_id': post_id,
+        'ip_address': ip_address,
+        'viewed_at': datetime.utcnow().isoformat()
+    }
+    
+    data_manager.create('post_views', view_data)
+    
+    post = get_post_by_id(post_id)
+    if post:
+        current_views = post.get('view_count', 0)
+        data_manager.update('posts', post_id, {'view_count': current_views + 1})
+    
+    return True
+
+
+def get_post_view_count(post_id: int) -> int:
+    """Get total view count for a post."""
+    views = data_manager.get_all_by_field('post_views', 'post_id', post_id)
+    return len(views)
+
+
+def get_post_views(post_id: int, limit: int = 100) -> List[Dict]:
+    """Get views for a post."""
+    views = data_manager.get_all_by_field('post_views', 'post_id', post_id)
+    views.sort(key=lambda x: x.get('viewed_at', ''), reverse=True)
+    return views[:limit]
+
+
+def create_message(message_data: Dict) -> Optional[Dict]:
+    """Create a direct message between users."""
+    message_data['is_read'] = False
+    return data_manager.create('messages', message_data)
+
+
+def get_messages(user_id: int, other_user_id: int, limit: int = 50) -> List[Dict]:
+    """Get conversation messages between two users."""
+    all_messages = data_manager.get_all('messages')
+    
+    messages = [
+        m for m in all_messages 
+        if (m.get('sender_id') == user_id and m.get('receiver_id') == other_user_id) or
+           (m.get('sender_id') == other_user_id and m.get('receiver_id') == user_id)
+    ]
+    
+    messages.sort(key=lambda x: x.get('created_at', ''))
+    return messages[-limit:]
+
+
+def get_conversations(user_id: int) -> List[Dict]:
+    """Get list of conversations for a user with last message."""
+    all_messages = data_manager.get_all('messages')
+    conversations = {}
+    
+    for msg in all_messages:
+        if msg.get('sender_id') == user_id:
+            other = msg.get('receiver_id')
+        elif msg.get('receiver_id') == user_id:
+            other = msg.get('sender_id')
+        else:
+            continue
+        
+        if other not in conversations:
+            conversations[other] = {
+                'user_id': other,
+                'last_message': msg,
+                'unread_count': 0
+            }
+        
+        if msg.get('receiver_id') == user_id and not msg.get('is_read', False):
+            conversations[other]['unread_count'] += 1
+    
+    for conv in conversations.values():
+        conv['last_message'] = sorted(
+            [m for m in all_messages 
+             if (m.get('sender_id') == user_id and m.get('receiver_id') == conv['user_id']) or
+                (m.get('receiver_id') == user_id and m.get('sender_id') == conv['user_id'])],
+            key=lambda x: x.get('created_at', '')
+        )[-1]
+    
+    return sorted(conversations.values(), key=lambda x: x.get('last_message', {}).get('created_at', ''), reverse=True)
+
+
+def mark_message_read(message_id: int) -> bool:
+    """Mark a message as read."""
+    return data_manager.update('messages', message_id, {'is_read': True}) is not None
+
+
+def mark_conversation_read(user_id: int, other_user_id: int) -> int:
+    """Mark all messages from other_user to user as read."""
+    all_messages = data_manager.get_all('messages')
+    count = 0
+    for msg in all_messages:
+        if msg.get('receiver_id') == user_id and msg.get('sender_id') == other_user_id and not msg.get('is_read', False):
+            if data_manager.update('messages', msg['id'], {'is_read': True}):
+                count += 1
+    return count
+
+
+def get_unread_message_count(user_id: int) -> int:
+    """Get total unread message count for a user."""
+    all_messages = data_manager.get_all('messages')
+    return sum(1 for m in all_messages if m.get('receiver_id') == user_id and not m.get('is_read', False))

@@ -11,10 +11,12 @@ from functools import wraps
 from werkzeug.utils import secure_filename
 from PIL import Image
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, send_from_directory, session
-from flask_login import login_required, current_user
+from flask_login import login_required, current_user, LOGIN_MESSAGE
+LOGIN_MESSAGE = "Пожалуйста, войдите для доступа к этой странице"
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_socketio import SocketIO, emit
 
 import config
 from data_manager import (
@@ -26,15 +28,22 @@ from data_manager import (
     get_statistics, get_top_users, get_posts_count,
     create_notification, get_notifications_by_user, mark_all_notifications_read,
     create_subscription, remove_subscription, get_subscriptions, get_subscribers, is_subscribed,
-    create_admin_log, get_admin_logs, get_admin_logs_by_admin
+    create_admin_log, get_admin_logs, get_admin_logs_by_admin,
+    create_post_view, get_post_view_count,
+    create_message, get_messages, get_conversations, mark_message_read, mark_conversation_read, get_unread_message_count
 )
 from auth import (
     init_auth, load_user, register_user, authenticate_user,
-    login_user_session, logout_user_session, generate_captcha
+    login_user_session, logout_user_session, generate_captcha,
+    validate_username, validate_email, validate_password,
+    check_username_exists, check_email_exists
 )
+from email_service import send_verification_email
 
 app = Flask(__name__)
 app.config.from_object(config)
+app.config['SECRET_KEY'] = config.SECRET_KEY
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 init_auth(app)
 
@@ -52,6 +61,31 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+
+def format_date(date_str: str) -> str:
+    if not date_str:
+        return ''
+    try:
+        dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        return dt.strftime('%d.%m.%Y')
+    except:
+        return date_str[:10]
+
+def format_time(date_str: str) -> str:
+    if not date_str:
+        return ''
+    try:
+        dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        return dt.strftime('%H:%M')
+    except:
+        return ''
+
+@app.context_processor
+def inject_unread_count():
+    if current_user.is_authenticated:
+        unread = get_unread_message_count(current_user.id)
+        return dict(unread_messages=unread)
+    return dict(unread_messages=0)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in config.ALLOWED_EXTENSIONS
@@ -87,15 +121,23 @@ def content_filter(text):
 def is_admin():
     return current_user.is_authenticated and current_user.role in config.ADMIN_ROLES
 
+def is_creator():
+    return current_user.is_authenticated and current_user.role == 'creator'
+
 @app.context_processor
 def inject_config():
+    from datetime import datetime
     theme = session.get('theme', 'light')
     return {
         'config': config,
         'is_admin': is_admin(),
+        'is_creator': is_creator(),
         'current_user': current_user,
         'theme': theme,
-        'BADGES': BADGES
+        'BADGES': BADGES,
+        'format_date': format_date,
+        'format_time': format_time,
+        'now': datetime.now()
     }
 
 TRANSLATIONS = {
@@ -112,7 +154,6 @@ TRANSLATIONS = {
     },
 }
 
-# Badges system
 BADGES = {
     'creator': {'name': 'Создатель', 'color': 'purple', 'icon': '👑'},
     'verified': {'name': 'Верифицирован', 'color': 'blue', 'icon': '✓'},
@@ -151,7 +192,6 @@ def search():
                 post['author'] = author
                 results['posts'].append(post)
     
-    # Return only filtered results
     if type_filter == 'users':
         results = {'users': results['users'], 'posts': []}
     elif type_filter == 'posts':
@@ -180,7 +220,6 @@ def delete_account():
         flash('Неверный пароль', 'error')
         return redirect(url_for('settings'))
     
-    # Soft delete user
     update_user(current_user.id, {'is_deleted': True, 'is_banned': True})
     
     logout_user_session()
@@ -192,7 +231,7 @@ def toggle_theme():
     if 'theme' not in session:
         session['theme'] = 'light'
     
-    themes = ['light', 'dark', 'black-yellow']
+    themes = ['light', 'dark']
     current_idx = themes.index(session.get('theme', 'light'))
     next_idx = (current_idx + 1) % len(themes)
     session['theme'] = themes[next_idx]
@@ -233,6 +272,7 @@ def index():
         if user:
             post['author_avatar'] = user.get('avatar', 'default_avatar.png')
             post['author_name'] = user.get('display_name', user.get('username', 'Unknown'))
+        post['view_count'] = post.get('view_count', 0)
     
     return render_template('index.html', posts=posts, page=page, pages=pages)
 
@@ -245,6 +285,9 @@ def view_post(post_id):
     user = get_user_by_id(post['user_id'])
     post['author'] = user
     
+    ip_address = request.remote_addr
+    create_post_view(post_id, ip_address)
+    
     comments = get_comments_by_post(post_id)
     for comment in comments:
         comment_user = get_user_by_id(comment['user_id'])
@@ -255,6 +298,8 @@ def view_post(post_id):
         user_reaction = get_reaction(post_id, current_user.id)
         if user_reaction:
             user_reaction = user_reaction.get('reaction_type')
+    
+    post['view_count'] = get_post_view_count(post_id)
     
     return render_template('post.html', post=post, comments=comments, user_reaction=user_reaction)
 
@@ -270,6 +315,7 @@ def profile(username):
     posts = get_posts(limit=10, user_id=user['id'])
     for post in posts:
         post['author'] = user
+        post['view_count'] = post.get('view_count', 0)
     
     subscriber_count = len(get_subscribers(user['id']))
     subscription_count = len(get_subscriptions(user['id']))
@@ -282,12 +328,85 @@ def profile(username):
                            subscription_count=subscription_count,
                            is_subscribed=is_subscribed_value)
 
+@app.route('/verify-email')
+def verify_email():
+    code = request.args.get('code', '')
+    users = data_manager.get_all('users')
+    
+    for user in users:
+        if user.get('verification_code') == code:
+            update_user(user['id'], {
+                'email_verified': True,
+                'verification_code': None
+            })
+            flash('Email успешно подтверждён! Теперь вы можете войти.', 'success')
+            return redirect(url_for('login'))
+    
+    flash('Неверный код подтверждения', 'error')
+    return redirect(url_for('index'))
+
+@app.route('/verify-registration', methods=['GET', 'POST'])
+def verify_registration():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    temp_session = session.get('temp_user')
+    if not temp_session:
+        flash('Сессия регистрации истекла. Начните регистрацию заново.', 'error')
+        return redirect(url_for('register'))
+    
+    if request.method == 'POST':
+        code = request.form.get('code', '').strip()
+        
+        user_data = session.get('temp_user', {})
+        
+        if code == user_data.get('verification_code', ''):
+            user_data['email_verified'] = True
+            user_data['verification_code'] = None
+            user_data.pop('temp_user', None)
+            user_data.pop('temp_user_id', None)
+            
+            from data_manager import create_user
+            user = create_user(user_data)
+            
+            if user:
+                session['registration_complete'] = True
+                flash('Регистрация успешна! Теперь вы можете войти.', 'success')
+                return redirect(url_for('login'))
+            else:
+                flash('Ошибка регистрации. Попробуйте снова.', 'error')
+        else:
+            flash('Неверный код подтверждения. Проверьте почту и введите код.', 'error')
+        
+        return render_template('auth/verify_registration.html', email=user_data.get('email', ''))
+    
+    return render_template('auth/verify_registration.html', email=temp_session.get('email', ''))
+
+@app.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    if current_user.is_authenticated:
+        flash('Вы уже авторизованы', 'info')
+        return redirect(url_for('index'))
+    
+    temp_session = session.get('temp_user')
+    if temp_session:
+        from auth import generate_verification_code
+        from email_service import send_verification_email
+        
+        code = generate_verification_code()
+        session['temp_user']['verification_code'] = code
+        send_verification_email(temp_session['email'], temp_session['username'], code)
+        flash('Код подтверждения отправлен повторно. Проверьте почту.', 'success')
+        return redirect(url_for('verify_registration'))
+    
+    flash('Сессия регистрации истекла. Начните регистрацию заново.', 'error')
+    return redirect(url_for('register'))
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     
-    # Generate captcha only on GET or if not in session
     if 'captcha_answer' not in session:
         captcha_question, captcha_answer = generate_captcha()
         session['captcha_answer'] = captcha_answer
@@ -296,6 +415,12 @@ def register():
         captcha_question = session.get('captcha_question', '')
         captcha_answer = session.get('captcha_answer', 0)
     
+    if session.get('verification_step'):
+        return render_template('auth/register.html', 
+                             captcha_question=captcha_question,
+                             verification_step=True,
+                             temp_email=session.get('temp_email', ''))
+    
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         email = request.form.get('email', '').strip()
@@ -303,23 +428,16 @@ def register():
         display_name = request.form.get('display_name', '').strip() or username
         captcha_input = request.form.get('captcha', '')
         
-        # Check language for messages
-        lang = session.get('lang', 'ru')
-        
         if str(session.get('captcha_answer', 0)) != str(captcha_input).strip():
-            # Generate new captcha for next attempt
             captcha_question, captcha_answer = generate_captcha()
             session['captcha_answer'] = captcha_answer
             session['captcha_question'] = captcha_question
             
-            msg = 'Неверный ответ на капчу' if lang == 'ru' else 'Invalid captcha answer'
-            flash(msg, 'error')
+            flash('Неверный ответ на капчу', 'error')
             return render_template('auth/register.html', captcha_question=captcha_question)
         
-        user, error = register_user(username, email, password, display_name)
-        
-        if error:
-            # Generate new captcha
+        valid, error = validate_username(username)
+        if not valid:
             captcha_question, captcha_answer = generate_captcha()
             session['captcha_answer'] = captcha_answer
             session['captcha_question'] = captcha_question
@@ -327,13 +445,75 @@ def register():
             flash(error, 'error')
             return render_template('auth/register.html', captcha_question=captcha_question)
         
-        login_user_session(user)
+        valid, error = validate_email(email)
+        if not valid:
+            captcha_question, captcha_answer = generate_captcha()
+            session['captcha_answer'] = captcha_answer
+            session['captcha_question'] = captcha_question
+            
+            flash(error, 'error')
+            return render_template('auth/register.html', captcha_question=captcha_question)
         
-        msg = 'Регистрация успешна! Добро пожаловать в итп!' if lang == 'ru' else 'Registration successful! Welcome to итп!'
-        flash(msg, 'success')
-        return redirect(url_for('index'))
+        valid, error, _ = validate_password(password)
+        if not valid:
+            captcha_question, captcha_answer = generate_captcha()
+            session['captcha_answer'] = captcha_answer
+            session['captcha_question'] = captcha_question
+            
+            flash(error, 'error')
+            return render_template('auth/register.html', captcha_question=captcha_question)
+        
+        if get_user_by_username(username.lower()):
+            captcha_question, captcha_answer = generate_captcha()
+            session['captcha_answer'] = captcha_answer
+            session['captcha_question'] = captcha_question
+            
+            flash('Имя пользователя уже занято', 'error')
+            return render_template('auth/register.html', captcha_question=captcha_question)
+        
+        if get_user_by_email(email.lower()):
+            captcha_question, captcha_answer = generate_captcha()
+            session['captcha_answer'] = captcha_answer
+            session['captcha_question'] = captcha_question
+            
+            flash('Email уже используется', 'error')
+            return render_template('auth/register.html', captcha_question=captcha_question)
+        
+        from auth import generate_verification_code, hash_password
+        
+        verification_code = generate_verification_code()
+        
+        temp_user_data = {
+            'username': username.lower(),
+            'email': email.lower(),
+            'display_name': display_name,
+            'password_hash': hash_password(password),
+            'verification_code': verification_code,
+            'role': 'user',
+            'is_verified': False,
+            'is_banned': False,
+            'read_only_mode': False,
+            'post_count': 0,
+            'comment_count': 0,
+            'avatar': 'default_avatar.png',
+            'banner': 'default_banner.png',
+            'badges': [],
+            'is_deleted': False,
+            'created_at': datetime.utcnow().isoformat()
+        }
+        
+        session['temp_user'] = temp_user_data
+        session['temp_email'] = email
+        session['verification_step'] = True
+        
+        send_verification_email(email, username, verification_code)
+        
+        flash('Код подтверждения отправлен на вашу почту. Введите его для завершения регистрации.', 'success')
+        return render_template('auth/register.html', 
+                             captcha_question=captcha_question,
+                             verification_step=True,
+                             temp_email=email)
     
-    # Clear captcha from session on GET to generate fresh one
     session.pop('captcha_answer', None)
     session.pop('captcha_question', None)
     captcha_question, captcha_answer = generate_captcha()
@@ -342,21 +522,94 @@ def register():
     
     return render_template('auth/register.html', captcha_question=captcha_question)
 
+@app.route('/verify-registration-code', methods=['POST'])
+def verify_registration_code():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    code = request.form.get('code', '').strip()
+    temp_user = session.get('temp_user')
+    
+    if not temp_user:
+        session.clear()
+        flash('Сессия истекла. Начните регистрацию заново.', 'error')
+        return redirect(url_for('register'))
+    
+    if code == temp_user.get('verification_code', ''):
+        from data_manager import create_user
+        
+        temp_user['email_verified'] = True
+        temp_user['verification_code'] = None
+        
+        user = create_user(temp_user)
+        
+        if user:
+            session.clear()
+            login_user_session(user)
+            flash('Регистрация успешна! Добро пожаловать!', 'success')
+            return redirect(url_for('index'))
+        else:
+            session.clear()
+            flash('Ошибка создания аккаунта. Попробуйте снова.', 'error')
+            return redirect(url_for('register'))
+    else:
+        flash('Неверный код. Проверьте почту и введите код правильно.', 'error')
+        
+        captcha_question, captcha_answer = generate_captcha()
+        session['captcha_answer'] = captcha_answer
+        session['captcha_question'] = captcha_question
+        
+        return render_template('auth/register.html', 
+                             captcha_question=captcha_question,
+                             verification_step=True,
+                             temp_email=session.get('temp_email', ''))
+
+@app.route('/resend-verification-code', methods=['POST'])
+def resend_verification_code():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    temp_user = session.get('temp_user')
+    temp_email = session.get('temp_email')
+    
+    if temp_user and temp_email:
+        from auth import generate_verification_code
+        
+        code = generate_verification_code()
+        session['temp_user']['verification_code'] = code
+        
+        send_verification_email(temp_email, temp_user['username'], code)
+        
+        flash('Код отправлен повторно. Проверьте почту.', 'success')
+        
+        captcha_question, captcha_answer = generate_captcha()
+        session['captcha_answer'] = captcha_answer
+        session['captcha_question'] = captcha_question
+        
+        return render_template('auth/register.html', 
+                             captcha_question=captcha_question,
+                             verification_step=True,
+                             temp_email=temp_email)
+    
+    session.clear()
+    flash('Сессия истекла. Начните регистрацию заново.', 'error')
+    return redirect(url_for('register'))
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
     
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
+        identifier = request.form.get('identifier', '').strip()
         password = request.form.get('password', '')
         
         lang = session.get('lang', 'ru')
         
-        user, error = authenticate_user(username, password)
+        user, error = authenticate_user(identifier, password)
         
         if error:
-            msg = 'Неверный username или пароль' if lang == 'ru' else 'Invalid username or password'
+            msg = error if lang == 'ru' else error
             flash(msg, 'error')
             return render_template('auth/login.html')
         
@@ -375,6 +628,41 @@ def logout():
     logout_user_session()
     flash('Вы вышли из системы', 'info')
     return redirect(url_for('index'))
+
+@app.route('/check-username', methods=['POST'])
+def check_username():
+    username = request.form.get('username', '').strip()
+    valid, error = validate_username(username)
+    
+    if not valid:
+        return jsonify({'valid': False, 'message': error})
+    
+    exists = check_username_exists(username)
+    if exists:
+        return jsonify({'valid': False, 'message': 'Username already exists'})
+    
+    return jsonify({'valid': True, 'message': 'Username is available'})
+
+@app.route('/check-email', methods=['POST'])
+def check_email():
+    email = request.form.get('email', '').strip()
+    valid, error = validate_email(email)
+    
+    if not valid:
+        return jsonify({'valid': False, 'message': error})
+    
+    exists = check_email_exists(email)
+    if exists:
+        return jsonify({'valid': False, 'message': 'Email already exists'})
+    
+    return jsonify({'valid': True, 'message': 'Email is available'})
+
+@app.route('/check-password', methods=['POST'])
+def check_password():
+    password = request.form.get('password', '')
+    valid, message, score = validate_password(password)
+    
+    return jsonify({'valid': valid, 'message': message, 'score': score})
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
@@ -398,9 +686,7 @@ def settings():
                 flash('Неверный текущий пароль', 'error')
                 return redirect(url_for('settings'))
             
-            valid, error = False, "Invalid password"
-            from auth import validate_password
-            valid, error = validate_password(new_password)
+            valid, error, _ = validate_password(new_password)
             if valid:
                 update_user(current_user.id, {'password_hash': generate_password_hash(new_password)})
                 flash('Пароль успешно изменён', 'success')
@@ -458,6 +744,10 @@ def upload_banner():
 def create_post_route():
     if not current_user.can_post:
         flash('You cannot create posts at this time', 'error')
+        return redirect(url_for('index'))
+    
+    if not current_user.email_verified:
+        flash('Сначала подтвердите email', 'error')
         return redirect(url_for('index'))
     
     if request.method == 'POST':
@@ -524,6 +814,26 @@ def delete_post(post_id):
     data_manager.soft_delete('posts', post_id)
     flash('Post deleted', 'success')
     return redirect(url_for('index'))
+
+@app.route('/pin_post/<int:post_id>', methods=['POST'])
+@login_required
+def pin_post(post_id):
+    post = get_post_by_id(post_id)
+    if not post:
+        abort(404)
+    
+    if post['user_id'] != current_user.id and not is_admin():
+        abort(403)
+    
+    new_is_pinned = not post.get('is_pinned', False)
+    data_manager.update('posts', post_id, {'is_pinned': new_is_pinned})
+    
+    if new_is_pinned:
+        flash('Пост закреплён', 'success')
+    else:
+        flash('Пост откреплён', 'success')
+    
+    return redirect(request.referrer or url_for('index'))
 
 @app.route('/comment/<int:post_id>', methods=['POST'])
 @login_required
@@ -605,9 +915,18 @@ def react_to_post(post_id):
     reaction_type = request.form.get('reaction_type', 'like')
     
     existing = get_reaction(post_id, current_user.id)
-    if existing and existing.get('reaction_type') == reaction_type:
-        remove_reaction(post_id, current_user.id)
-        flash(f'{reaction_type} removed', 'info')
+    if existing:
+        if existing.get('reaction_type') == reaction_type:
+            remove_reaction(post_id, current_user.id)
+            flash(f'{reaction_type} removed', 'info')
+        else:
+            remove_reaction(post_id, current_user.id)
+            create_reaction({
+                'post_id': post_id,
+                'user_id': current_user.id,
+                'reaction_type': reaction_type
+            })
+            flash(f'{reaction_type} added', 'success')
     else:
         create_reaction({
             'post_id': post_id,
@@ -635,6 +954,16 @@ def report_content(type, id):
         flash('Report submitted', 'success')
     else:
         flash('Failed to submit report', 'error')
+    
+    for admin_role in config.ADMIN_ROLES:
+        admins = data_manager.get_all_by_field('users', 'role', admin_role)
+        for admin in admins:
+            create_notification({
+                'user_id': admin['id'],
+                'type': 'new_report',
+                'message': f'Новая жалоба от {current_user.username}',
+                'link': url_for('admin_view_report', report_id=report['id']) if report else '#'
+            })
     
     if type == 'post':
         return redirect(url_for('view_post', post_id=id))
@@ -674,6 +1003,15 @@ def apply_verification():
         })
         
         if app_data:
+            for admin_role in config.ADMIN_ROLES:
+                admins = data_manager.get_all_by_field('users', 'role', admin_role)
+                for admin in admins:
+                    create_notification({
+                        'user_id': admin['id'],
+                        'type': 'new_application',
+                        'message': f'Новая заявка на верификацию от {current_user.username}',
+                        'link': url_for('admin_view_application', app_id=app_data['id'])
+                    })
             flash('Application submitted successfully', 'success')
         else:
             flash('Failed to submit application', 'error')
@@ -712,7 +1050,7 @@ def admin_users():
 @app.route('/admin/change_role/<int:user_id>', methods=['POST'])
 @login_required
 def admin_change_role(user_id):
-    if current_user.role != 'creator':
+    if not is_creator():
         abort(403)
     
     new_role = request.form.get('role')
@@ -726,6 +1064,14 @@ def admin_change_role(user_id):
     
     update_user(user_id, {'role': new_role})
     flash(f'Role for {user["username"]} changed to {new_role}', 'success')
+    
+    create_admin_log({
+        'admin_id': current_user.id,
+        'action': 'change_role',
+        'target_user_id': user_id,
+        'new_role': new_role
+    })
+    
     return redirect(url_for('admin_users'))
 
 @app.route('/admin/statistics')
@@ -781,7 +1127,6 @@ def admin_approve_application(app_id):
     process_application(app_id, 'approved', current_user.id)
     app_data = data_manager.get_by_id('applications', app_id)
     
-    # Log admin action
     create_admin_log({
         'admin_id': current_user.id,
         'action': 'approve_application',
@@ -807,7 +1152,6 @@ def admin_reject_application(app_id):
     
     process_application(app_id, 'rejected', current_user.id)
     
-    # Log admin action
     create_admin_log({
         'admin_id': current_user.id,
         'action': 'reject_application',
@@ -850,7 +1194,6 @@ def admin_ban_user(user_id):
         
         create_ban(ban_data)
         
-        # Log admin action
         create_admin_log({
             'admin_id': current_user.id,
             'action': 'ban_user',
@@ -872,7 +1215,6 @@ def admin_unban_user(user_id):
     
     remove_ban(user_id)
     
-    # Log admin action
     create_admin_log({
         'admin_id': current_user.id,
         'action': 'unban_user',
@@ -900,7 +1242,7 @@ def admin_toggle_readonly(user_id):
 @app.route('/admin/manage_badges/<int:user_id>', methods=['POST'])
 @login_required
 def admin_manage_badges(user_id):
-    if current_user.role != 'creator':
+    if not is_creator():
         abort(403)
     
     user = get_user_by_id(user_id)
@@ -932,7 +1274,6 @@ def admin_delete_content(type, id):
     elif type == 'comment':
         data_manager.soft_delete('comments', id)
     
-    # Log admin action
     create_admin_log({
         'admin_id': current_user.id,
         'action': 'delete_content',
@@ -1007,7 +1348,7 @@ def admin_view_report(report_id):
 @app.route('/admin/logs')
 @login_required
 def admin_logs():
-    if current_user.role != 'creator':
+    if not is_creator():
         abort(403)
     
     logs = get_admin_logs(100)
@@ -1017,7 +1358,6 @@ def admin_logs():
     
     return render_template('admin/logs.html', logs=logs)
 
-# Subscription routes
 @app.route('/subscribe/<int:user_id>', methods=['POST'])
 @login_required
 def subscribe(user_id):
@@ -1034,7 +1374,6 @@ def subscribe(user_id):
         flash(f'Вы отписались от {user["display_name"]}', 'info')
     else:
         create_subscription(current_user.id, user_id)
-        # Notify the user
         create_notification({
             'user_id': user_id,
             'type': 'new_subscriber',
@@ -1077,20 +1416,85 @@ def subscriptions(username):
     
     return render_template('profile/subscriptions.html', profile_user=user, subscriptions=subscriptions_list)
 
-# Maintenance mode - global setting
+@app.route('/messages')
+@login_required
+def messages():
+    conversations = get_conversations(current_user.id)
+    for conv in conversations:
+        other_user = get_user_by_id(conv['user_id'])
+        if other_user:
+            conv['user'] = other_user
+    return render_template('profile/messages.html', conversations=conversations)
+
+@app.route('/messages/<username>')
+@login_required
+def conversation(username):
+    other_user = get_user_by_username(username.lower())
+    if not other_user:
+        abort(404)
+    
+    mark_conversation_read(current_user.id, other_user['id'])
+    
+    messages_list = get_messages(current_user.id, other_user['id'])
+    for msg in messages_list:
+        if msg.get('sender_id') != current_user.id:
+            mark_message_read(msg['id'])
+    
+    other_user['is_subscribed'] = is_subscribed(current_user.id, other_user['id'])
+    
+    return render_template('profile/conversation.html', messages=messages_list, other_user=other_user)
+
+@app.route('/send_message/<int:user_id>', methods=['POST'])
+@login_required
+def send_message(user_id):
+    if current_user.is_banned:
+        flash('Вы не можете отправлять сообщения', 'error')
+        return redirect(request.referrer or url_for('index'))
+    
+    content = request.form.get('content', '').strip()
+    if not content:
+        flash('Сообщение не может быть пустым', 'error')
+        return redirect(request.referrer or url_for('conversation', username=get_user_by_id(user_id)['username']))
+    
+    receiver = get_user_by_id(user_id)
+    if not receiver:
+        abort(404)
+    
+    if receiver.get('is_banned', False):
+        flash('Пользователь заблокирован', 'error')
+        return redirect(request.referrer or url_for('index'))
+    
+    message = create_message({
+        'sender_id': current_user.id,
+        'receiver_id': user_id,
+        'content': content
+    })
+    
+    if message:
+        create_notification({
+            'user_id': user_id,
+            'type': 'new_message',
+            'message': f'Новое сообщение от {current_user.display_name}',
+            'link': url_for('conversation', username=current_user.username)
+        })
+        flash('Сообщение отправлено', 'success')
+    else:
+        flash('Ошибка отправки сообщения', 'error')
+    
+    return redirect(url_for('conversation', username=receiver['username']))
+
 maintenance_mode = False
 
 @app.route('/admin/maintenance', methods=['POST'])
 @login_required
 def admin_toggle_maintenance():
     global maintenance_mode
-    if current_user.role != 'creator':
+    if not is_creator():
         abort(403)
     
     enabled = request.form.get('enabled', 'false') == 'true'
     maintenance_mode = enabled
     
-    # Log the action
     logging.info(f'Maintenance mode {"enabled" if enabled else "disabled"} by user {current_user.username}')
     
     flash(f'Режим обслуживания {"включён" if enabled else "выключен"}', 'success')
@@ -1104,11 +1508,30 @@ def check_maintenance_mode():
     if maintenance_mode and current_user.role != 'creator':
         return render_template('errors/maintenance.html'), 503
 
+@app.route('/media/avatars/<path:filename>')
+def avatar_file(filename):
+    return send_from_directory(config.AVATAR_DIR, filename)
+
+@app.route('/media/banners/<path:filename>')
+def banner_file(filename):
+    return send_from_directory(config.BANNER_DIR, filename)
+
+@app.route('/media/post_media/<path:filename>')
+def post_media_file(filename):
+    return send_from_directory(config.POST_MEDIA_DIR, filename)
+
+@app.route('/media/application_media/<path:filename>')
+def application_media_file(filename):
+    return send_from_directory(config.APPLICATION_MEDIA_DIR, filename)
+
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     return send_from_directory(config.UPLOAD_DIR, filename)
 
-# Exclude uploaded_file from rate limiting
+limiter.exempt(avatar_file)
+limiter.exempt(banner_file)
+limiter.exempt(post_media_file)
+limiter.exempt(application_media_file)
 limiter.exempt(uploaded_file)
 
 @app.errorhandler(404)
@@ -1124,4 +1547,4 @@ def internal_error(error):
     return render_template('errors/500.html'), 500
 
 if __name__ == '__main__':
-    app.run(debug=config.DEBUG, host='0.0.0.0', port=5000)
+    socketio.run(app, debug=config.DEBUG, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
